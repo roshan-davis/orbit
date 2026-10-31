@@ -11,3 +11,14 @@ Public repository: https://github.com/roshan-davis/orbit. Public access is read-
 ## Product constraints
 
 Cloud providers use their supported subscription-authenticated native CLIs with no paid API fallback. Credentials remain outside Git. Keep unavailable integrations disabled, quota uncertainty explicit, shared provider pools deduplicated, and skill publication subject to review and human approval.
+
+## Completion tracking
+
+When a work item is implemented and its required checks pass, update its
+`docs/work-items/ORB-xxx.md` with checked acceptance/validation items and the real
+PR link. After GitHub confirms a merge, prefix the PR chat title with `✅` and
+mark the matching backlog item complete if a backlog exists. Do this as part of
+finishing the work; do not wait for a separate request to add completion marks.
+Only mark work complete when the evidence supports it. Completion tracking does
+not itself authorize merging; follow the user's merge authorization and required
+independent review.
