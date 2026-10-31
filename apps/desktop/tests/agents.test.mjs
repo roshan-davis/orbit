@@ -8,10 +8,10 @@ import ts from 'typescript';
 
 function host() {
   const states = []; let cursor = 0; let App; const calls = []; const replies = [];
-  const react = { createElement: (type, props, ...children) => ({ type, props: { ...props, children } }),
+  const react = { createElement: (type, props, ...children) => ({ type, props: { ...props, children: children.length ? children : (props?.children ?? []) } }),
     useState(initial) { const i = cursor++; if (!(i in states)) states[i] = initial;
       return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; } };
-  const context = { Error, document: { getElementById: () => ({}) }, AbortSignal, fetch: async (url, options) => {
+  const context = { Error, window: { scrollTo() {} }, document: { getElementById: () => ({}) }, AbortSignal, fetch: async (url, options) => {
     calls.push({ url, ...options }); const reply = await replies.shift();
     if (reply instanceof Error) throw reply;
     assert.ok(reply, 'unexpected request');
@@ -25,14 +25,15 @@ function host() {
     return module.exports;
   }
   const agents = load('../src/agents.ts', {});
-  load('../src/main.tsx', { react, './agents': agents, './styles.css': {},
+  const design = load('../src/design-system.tsx', { react });
+  load('../src/main.tsx', { react, './agents': agents, './design-system': design, './styles.css': {},
     'react-dom/client': { createRoot: () => ({ render: node => { App = node.props.children[0].type; } }) } });
   function render() { cursor = 0; return App(); }
-  function nodes(node) { return Array.isArray(node) ? node.flatMap(nodes) : node && typeof node === 'object' ? [node, ...nodes(node.props.children)] : []; }
+  function nodes(node) { if (node && typeof node === 'object' && typeof node.type === 'function') return nodes(node.type(node.props)); return Array.isArray(node) ? node.flatMap(nodes) : node && typeof node === 'object' ? [node, ...nodes(node.props.children)] : []; }
   const all = () => nodes(render());
-  const text = node => Array.isArray(node) ? node.map(text).join('') : node && typeof node === 'object' ? text(node.props.children) : node ?? '';
+  const text = node => Array.isArray(node) ? node.map(text).join('') : node && typeof node === 'object' ? text(node.props.children) : typeof node === 'boolean' ? '' : node ?? '';
   const byId = id => all().find(n => n.props.id === id);
-  const button = label => all().find(n => n.type === 'button' && text(n) === label);
+  const button = label => all().find(n => n.type === 'button' && (text(n) === label || n.props['aria-label'] === label));
   return { agents, calls, replies, all, text, byId, button,
     change(id, value) { byId(id).props.onChange({ target: { value } }); },
     async submit(editor = false) { await all().find(n => n.type === 'form' && (editor ? n.props.className === 'editor' : !n.props.className)).props.onSubmit({ preventDefault() {} }); },
@@ -155,7 +156,7 @@ test('task create, readiness, assignment snapshot and audit detail', async () =>
   assert.ok(h.all().some(n => n.type === 'p' && h.text(n).includes('saved configuration')));
   assert.ok(h.all().some(n => n.type === 'li' && h.text(n).includes('created')));
   assert.equal(h.button('Assign Check parser'), undefined);
-  assert.ok(h.all().some(n => n.type === 'p' && h.text(n).includes('does not run a model')));
+  assert.ok(h.all().some(n => n.type === 'summary' && h.text(n).includes('File access')));
 });
 test('task errors retain draft, refresh clears stale data, project change clears tasks', async () => {
   const h = host(); await withProject(h);
@@ -217,4 +218,49 @@ test('explicit file run grant, refresh diff, cancellation and failure recovery',
   assert.equal(h.button('Record completed independent review for Check parser').props.disabled, true);
   h.change('project-selection', '');
   assert.equal(h.button('Refresh Check parser run and diff'), undefined);
+});
+
+test('workspace navigation and theme keep one product view visible', async () => {
+  const h = host();
+  const views = () => h.all().filter(n => n.type === 'section' && n.props.className?.includes('page-view'));
+  assert.equal(views().filter(n => !n.props.hidden).length, 1);
+  assert.ok(views().find(n => !n.props.hidden).props.className.includes('missions-view'));
+  h.button('Connect your workspace').props.onClick();
+  assert.equal(views().find(n => !n.props.hidden).props['aria-label'], 'Workspace setup');
+  h.button('Agents').props.onClick();
+  assert.equal(views().find(n => !n.props.hidden).props['aria-label'], 'Persistent agents');
+  h.button('Models & capacity').props.onClick();
+  assert.equal(views().find(n => !n.props.hidden).props['aria-label'], 'Models and capacity');
+  assert.equal(h.all().find(n => n.type === 'main').props['data-theme'], 'dark');
+  h.button('Switch to light theme').props.onClick();
+  assert.equal(h.all().find(n => n.type === 'main').props['data-theme'], 'light');
+  h.button('Switch to dark theme').props.onClick();
+  assert.equal(h.all().find(n => n.type === 'main').props['data-theme'], 'dark');
+});
+
+test('mission composer, focused selection and keyboard detail tabs preserve drafts', async () => {
+  const h = host(); await withProject(h);
+  const composer = () => h.all().find(n => n.props.className === 'task-editor');
+  assert.equal(composer().props.hidden, true);
+  h.button('New mission').props.onClick(); assert.equal(composer().props.hidden, false);
+  h.change('task-title', 'A draft');
+  h.button('Close draft').props.onClick(); assert.equal(composer().props.hidden, true);
+  h.button('New mission').props.onClick(); assert.equal(h.byId('task-title').props.value, 'A draft');
+  const second = { ...task, id: 'second', title: 'Another mission' };
+  h.replies.push({ status: 200, body: [task, second] });
+  h.button('Refresh tasks').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.ok(h.button('Mark Check parser ready'));
+  assert.equal(h.button('Mark Another mission ready'), undefined);
+  h.button('View Another mission').props.onClick();
+  assert.ok(h.button('Mark Another mission ready'));
+  assert.equal(h.button('Mark Check parser ready'), undefined);
+  const tab = h.all().find(n => n.props.role === 'tab' && h.text(n) === 'Overview');
+  let focused = -1; let prevented = false;
+  tab.props.onKeyDown({ key: 'ArrowRight', preventDefault() { prevented = true; },
+    currentTarget: { parentElement: { querySelectorAll: () => [0, 1, 2].map(i => ({ focus() { focused = i; } })) } } });
+  assert.equal(prevented, true); assert.equal(focused, 1);
+  const visible = h.all().filter(n => n.props.role === 'tabpanel' && !n.props.hidden);
+  assert.equal(visible.length, 1); assert.ok(visible[0].props.id.endsWith('panel-changes'));
+  h.all().find(n => n.props.role === 'tab' && h.text(n) === 'Activity').props.onClick();
+  assert.ok(h.all().find(n => n.props.role === 'tabpanel' && !n.props.hidden).props.id.endsWith('panel-activity'));
 });

@@ -49,6 +49,7 @@ npm run tauri build -- --no-bundle
 ## Read next
 - [Requirements](docs/requirements.md)
 - [Architecture](docs/architecture.md)
+- [Design system and UI patterns](docs/design-system.md)
 - [Implementation phases](docs/roadmap.md)
 - [Provider integration contract](docs/providers.md)
 - [Claude/developer handoff](CONTRIBUTING.md)
