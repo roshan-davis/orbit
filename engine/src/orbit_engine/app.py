@@ -1,11 +1,13 @@
 import os
 import secrets
+import sqlite3
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from .models import Agent, AgentInput
+from .models import Agent, AgentInput, Project, ProjectInput
+from .projects import ProjectError
 from .providers import declarations
 from .store import Store
 
@@ -57,6 +59,29 @@ def create_app(db_path: Path | None = None, token: str | None = None) -> FastAPI
         if agent is None:
             raise HTTPException(status_code=404, detail="Agent not found")
         return agent
+
+    @app.get("/v1/projects", response_model=list[Project], dependencies=[Depends(authorize)])
+    def list_projects():
+        return app.state.store.list_projects()
+
+    @app.post("/v1/projects", response_model=Project, status_code=201, dependencies=[Depends(authorize)])
+    def create_project(profile: ProjectInput):
+        try:
+            return app.state.store.create_project(profile)
+        except ProjectError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except sqlite3.IntegrityError as exc:
+            raise HTTPException(status_code=409, detail="Project root already registered") from exc
+
+    @app.get("/v1/projects/{project_id}", response_model=Project, dependencies=[Depends(authorize)])
+    def get_project(project_id: str):
+        try:
+            project = app.state.store.get_project(project_id)
+        except ProjectError as exc:
+            raise HTTPException(status_code=409, detail="Registered project unavailable; check its canonical root") from exc
+        if project is None:
+            raise HTTPException(status_code=404, detail="Project not found")
+        return project
 
     @app.get("/v1/providers", dependencies=[Depends(authorize)])
     def providers():
