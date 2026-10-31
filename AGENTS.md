@@ -22,3 +22,14 @@ Repository workflow permission does not alter product approval behavior: docs/re
 - Shared quota pools are account/provider resources, never duplicated per agent (R10–R12). Preserve measured/estimated/unknown states, freshness and all active windows; aggregate only comparable independent pools. Keep local compute separate.
 - Skills require evidence, testing, independent review, human approval and immutable versioned publication with rollback (R09). Never auto-publish or silently expand permissions.
 - Keep memory scoped, secrets out of prompts/logs and private remote access gated (R13, R15).
+
+## Completion tracking
+
+When a work item is implemented and its required checks pass, update its
+`docs/work-items/ORB-xxx.md` with checked acceptance/validation items and the real
+PR link. After GitHub confirms a merge, prefix the PR chat title with `✅` and
+mark the matching backlog item complete if a backlog exists. Do this as part of
+finishing the work; do not wait for a separate request to add completion marks.
+Only mark work complete when the evidence supports it. Completion tracking does
+not itself authorize merging; follow the user's merge authorization and required
+independent review.
