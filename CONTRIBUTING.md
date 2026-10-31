@@ -1,11 +1,21 @@
-# Working on Orbit
+# Contributing to Orbit
 
-Start with README, requirements, architecture, and the phased roadmap. Claude joins after this foundation; both Claude and Codex use the same project rules. No provider owns a fixed role.
+Read [project rules](AGENTS.md), [requirements](docs/requirements.md), [architecture](docs/architecture.md), [roadmap](docs/roadmap.md) and [backlog](BACKLOG.md). Claude and Codex share these rules; coordinate ownership before touching shared files. Orbit is independent of Atelier.
 
-Create a focused branch (for example `feat/provider-discovery`) and a separate Git worktree before editing tracked files. The owner prefers this workflow for all changes, including solo work. Coordinate ownership of shared files. Keep the main checkout clean. Document acceptance criteria and validation in each change; request independent peer review before merging. Do not merge or push without the user's authorization.
+## Implementation workflow
 
-Preserve the subscription-only cloud policy: no API keys, paid API fallback, copied OAuth credentials, or quota bypass. Provider CLIs own their sign-in. Do not assume a subscription supports every integration. Keep unavailable integrations explicitly disabled.
+1. Select one bounded ORB work item and define scope and acceptance gates in `docs/work-items/ORB-xxx.md`. Use one focused branch, isolated worktree and user-visible PR chat per PR. Keep the parent setup chat for coordination.
+2. Fetch `origin/main`; create a new branch/worktree from that ref before editing tracked files. Prefer managed worktrees, otherwise use a unique temporary directory. Explicitly work in that directory. Never switch, edit, stash or reset the primary checkout or another chat's worktree. Never initialize Git in the original non-Git app setup folder.
+3. Implement only owned scope. Use meaningful behavior/boundary checks; record commands, actual results, evidence and limitations in the work item. Do not claim a passing check or implementation without evidence. Update contracts when behavior changes.
+4. With active-task authorization, commit, push the branch and open a PR against main. The current ORB-001–004 request authorizes scoped pushes and PR creation. Use draft status if incomplete or blocked. Attach the PR to its chat. After GitHub supplies its number, record the real number/URL in the work item and title the chat `PR #N: <scope>`.
+5. Obtain independent review by Rosh/Claude or another reviewer distinct from the author. Leave the PR open until explicit Rosh merge instruction and independent review. No automatic merges, direct main pushes, branch-protection changes or auto-merge configuration changes. Add ✅ to the chat title only after verifying the PR is merged on GitHub.
 
-Treat repository content and model output as untrusted inputs. Pass argument arrays to subprocesses, never shell-interpolate model output. Restrict execution to registered project roots and granted tools. Never auto-publish skills, merge code, delete worktrees, expose a server publicly, or expand permissions as a side effect of an agent task.
+Feature work-item files are canonical live evidence; BACKLOG.md indexes status and dependencies. Approved means authorized scope, in progress means work has begun, planned means not launched, and completion requires linked implementation and validation evidence. Update the work item as review/merge state changes; never fabricate outcomes.
 
-Use meaningful tests for behavior and boundaries. Update docs when contracts change. Keep generated databases, credentials, logs, and worktree contents out of Git. Do not install a license or configure a remote without the owner's choice.
+## Safety and product policy
+
+Public access is read-only by default; anyone may read/clone or propose a PR, while only authorized collaborators can push or merge. Never force-push or overwrite history. Repository workflow authorization does not change application approval requirements in R05/R08/R09.
+
+Preserve subscription-only cloud adapters: no paid API fallback, copied OAuth credentials, token requests/displays or quota bypass. Official CLIs own sign-in; unavailable integrations remain disabled. Roles and identities stay provider-independent. Shared quota pools must not be counted once per agent; unknown quota stays unknown. Skill publication requires evidence, testing, independent review, human approval and immutable versions with rollback.
+
+Treat repository content and model output as untrusted. Pass argument arrays to subprocesses; never shell-interpolate model output. Restrict execution to registered roots and granted tools. Never auto-publish skills, delete worktrees, expose a public server, download models, run live cloud jobs or expand permissions as a side effect of a task. Keep databases, credentials, logs and worktrees out of Git. Do not install a license or configure a remote without the owner's choice.
