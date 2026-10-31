@@ -8,14 +8,16 @@ remote font/image download is required.
 ## Theme and foundations
 
 `apps/desktop/src/theme.css` owns the theme contract: semantic colors, surface
-levels, type families/sizes, spacing steps, radii and shadows. The default Forest
-night theme uses ink-green surfaces, warm off-white text and a pale sage accent.
-The light theme uses chalk surfaces, deep green text and a darker green accent.
+levels, type families/sizes, spacing steps, radii and shadows. The default Dusk
+night theme uses neutral slate surfaces, soft white text and a lavender accent.
+The Alabaster light theme uses cool white surfaces, deep neutral text and indigo actions.
+The approved eight-page Antigravity / Google Stitch reference supplies visual direction;
+ORB-008 records provenance and corrections to unsupported reference claims.
 The sidebar theme control switches themes for the current session. Never use a
 provider's identity as the application's theme or assign fixed roles by provider.
 
 Use semantic tokens rather than one-off colors. Reserve the accent for the
-primary action, active navigation, focus and positive readiness. Amber means
+primary action, active navigation, focus and selected state. Mint indicates a recorded successful outcome, never inferred readiness. Amber means
 attention/review; neutral means unknown or inactive. Status always has a text
 label, so color is never the only signal. Unknown capacity is not a percentage.
 Typography uses installed system fonts; run evidence uses the system monospace.
@@ -66,3 +68,19 @@ agent/project/task/run flows. Browser visual checks use disconnected real produc
 states and disposable saved local-smoke data, never invented user configuration.
 Native packaging remains a separate validation gate. This is a compact source
 component library, not a claim of a fully audited accessibility certification.
+
+## Focused mission decisions (ORB-008)
+
+A compact summary replaces dashboard cards. The selected mission explains its next
+step using recorded state. Dependencies, assignment history and optional agent
+configuration use native disclosures. File grants open at the assigned step; grants
+reset on mission, assignment and scope changes. Context is limited to 65,536 UTF-8
+bytes across at most 16 files, not characters; no speculative usage meter is shown.
+
+Review excludes prior authors from the configured identity picker. The human session
+records a completed review assertion; Orbit does not run an independent reviewer.
+Request revision returns through ready and a new assignment. Final completion needs
+a separate note and explicit checkbox and never merges or pushes Git.
+
+No Emergency Stop, persona testing, identity forking, DAG editor, automatic testing
+or telemetry is implied. Model inventory alone is not execution readiness.
