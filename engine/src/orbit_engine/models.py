@@ -1,5 +1,5 @@
 from typing import Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 Provider = Literal["claude-code", "codex-cli", "gemini-cli", "ollama"]
 
@@ -13,6 +13,14 @@ class AgentInput(BaseModel):
     tools: list[str] = Field(default_factory=list)
     provider: Provider
     model: str = Field(min_length=1)
+
+    @field_validator("name", "role", "seniority", "model")
+    @classmethod
+    def meaningful_identity(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Must contain non-whitespace characters")
+        return value
 
 class Agent(AgentInput):
     id: str

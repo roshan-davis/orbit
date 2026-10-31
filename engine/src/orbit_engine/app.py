@@ -25,7 +25,7 @@ def create_app(db_path: Path | None = None, token: str | None = None) -> FastAPI
     app.add_middleware(CORSMiddleware,
         allow_origins=["http://localhost:1420", "http://127.0.0.1:1420",
                        "tauri://localhost", "http://tauri.localhost", "https://tauri.localhost"],
-        allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type"])
+        allow_methods=["GET", "POST", "PUT"], allow_headers=["Authorization", "Content-Type"])
     bearer = HTTPBearer(auto_error=False)
 
     def authorize(credentials: HTTPAuthorizationCredentials | None = Depends(bearer)):
@@ -43,6 +43,20 @@ def create_app(db_path: Path | None = None, token: str | None = None) -> FastAPI
     @app.post("/v1/agents", response_model=Agent, status_code=201, dependencies=[Depends(authorize)])
     def create_agent(profile: AgentInput):
         return app.state.store.create_agent(profile)
+
+    @app.get("/v1/agents/{agent_id}", response_model=Agent, dependencies=[Depends(authorize)])
+    def get_agent(agent_id: str):
+        agent = app.state.store.get_agent(agent_id)
+        if agent is None:
+            raise HTTPException(status_code=404, detail="Agent not found")
+        return agent
+
+    @app.put("/v1/agents/{agent_id}", response_model=Agent, dependencies=[Depends(authorize)])
+    def update_agent(agent_id: str, profile: AgentInput):
+        agent = app.state.store.update_agent(agent_id, profile)
+        if agent is None:
+            raise HTTPException(status_code=404, detail="Agent not found")
+        return agent
 
     @app.get("/v1/providers", dependencies=[Depends(authorize)])
     def providers():

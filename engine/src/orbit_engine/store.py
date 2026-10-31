@@ -36,3 +36,15 @@ class Store:
         with self.connect() as db:
             db.execute("INSERT INTO agents VALUES (?, ?)", (agent.id, agent.model_dump_json()))
         return agent
+
+    def get_agent(self, agent_id: str) -> Agent | None:
+        with self.connect() as db:
+            row = db.execute("SELECT profile FROM agents WHERE id = ?", (agent_id,)).fetchone()
+        return Agent.model_validate_json(row[0]) if row else None
+
+    def update_agent(self, agent_id: str, profile: AgentInput) -> Agent | None:
+        agent = Agent(id=agent_id, **profile.model_dump())
+        with self.connect() as db:
+            result = db.execute("UPDATE agents SET profile = ? WHERE id = ?",
+                                (agent.model_dump_json(), agent_id))
+            return agent if result.rowcount else None
