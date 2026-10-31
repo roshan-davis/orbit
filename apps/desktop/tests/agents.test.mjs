@@ -124,3 +124,58 @@ test('project registration, fresh selection, failure recovery and reconnect', as
   await connected(h);
   assert.equal(h.byId('project-selection').props.value, '');
 });
+
+const task = { id: 'task-1', title: 'Check parser', acceptance: 'Reject invalid input', state: 'queued', version: 0,
+  dependencies: [], assignments: [], events: [{ sequence: 1, kind: 'created', data: {}, created_at: '2026-10-31T12:00:00Z' }] };
+async function withProject(h) {
+  await connected(h, [saved]);
+  h.change('project-name', 'Repo'); h.change('project-root', '/canonical/repo');
+  h.replies.push({ status: 201, body: { id: 'p', name: 'Repo', root: '/canonical/repo' } });
+  await h.all().find(n => n.props.className === 'project-editor').props.onSubmit({ preventDefault() {} });
+  h.replies.push({ status: 200, body: [] });
+  h.button('Refresh tasks').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+}
+test('task create, readiness, assignment snapshot and audit detail', async () => {
+  const h = host(); await withProject(h);
+  assert.equal(h.byId('task-title').props.pattern, '.*\\S.*');
+  h.change('task-title', task.title); h.change('task-acceptance', task.acceptance);
+  h.replies.push({ status: 201, body: task });
+  await h.all().find(n => n.props.className === 'task-editor').props.onSubmit({ preventDefault() {} });
+  assert.equal(h.calls.at(-1).method, 'POST');
+  assert.deepEqual(JSON.parse(h.calls.at(-1).body), { project_id: 'p', title: task.title, acceptance: task.acceptance, dependencies: [] });
+  h.replies.push({ status: 200, body: { ...task, state: 'ready', version: 1 } });
+  h.button('Mark Check parser ready').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(JSON.parse(h.calls.at(-1).body).expected_version, 0);
+  assert.equal(h.button('Assign Check parser').props.disabled, true);
+  h.change('task-agent', saved.id);
+  const assigned = { ...task, state: 'assigned', version: 2, assignments: [{ id: 'assignment-1', agent_id: saved.id, snapshot: saved }] };
+  h.replies.push({ status: 200, body: assigned });
+  h.button('Assign Check parser').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(JSON.parse(h.calls.at(-1).body), { expected_version: 1, agent_id: saved.id });
+  assert.ok(h.all().some(n => n.type === 'p' && h.text(n).includes('saved configuration')));
+  assert.ok(h.all().some(n => n.type === 'li' && h.text(n).includes('created')));
+  assert.equal(h.button('Assign Check parser'), undefined);
+  assert.ok(h.all().some(n => n.type === 'p' && h.text(n).includes('does not run a model')));
+});
+test('task errors retain draft, refresh clears stale data, project change clears tasks', async () => {
+  const h = host(); await withProject(h);
+  h.change('task-title', 'Retain me'); h.change('task-acceptance', 'Pass');
+  h.replies.push({ status: 422 });
+  await h.all().find(n => n.props.className === 'task-editor').props.onSubmit({ preventDefault() {} });
+  assert.equal(h.byId('task-title').props.value, 'Retain me');
+  h.replies.push({ status: 200, body: [task] });
+  h.button('Refresh tasks').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  h.replies.push({ status: 409 });
+  h.button('Mark Check parser ready').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.ok(h.all().some(n => n.props.role === 'alert' && h.text(n).includes('state changed')));
+  assert.ok(h.button('Mark Check parser ready'));
+  let finish; h.replies.push(new Promise(resolve => { finish = resolve; }));
+  h.button('Refresh tasks').props.onClick();
+  assert.equal(h.byId('project-selection').props.disabled, true);
+  assert.equal(h.button('Connect').props.disabled, true);
+  finish({ status: 200, body: [task] }); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.byId('task-title').props.value, 'Retain me');
+  h.change('project-selection', '');
+  assert.equal(h.button('View Check parser'), undefined);
+  assert.equal(h.byId('task-title'), undefined);
+});

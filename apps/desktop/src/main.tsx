@@ -7,7 +7,54 @@ type Project = { id: string; name: string; root: string };
 
 type Provider = { id: string; execution_enabled: boolean; energy: { kind: string; status: string } };
 
+type Task = { id: string; title: string; acceptance: string; state: string; version: number;
+  dependencies: string[]; assignments: { id: string; agent_id: string; snapshot: Agent }[];
+  events: { sequence: number; kind: string; data: { note?: string; to?: string }; created_at: string }[] };
+
 function App() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskTitle, setTaskTitle] = useState('');
+  const [acceptance, setAcceptance] = useState('');
+  const [dependencies, setDependencies] = useState<string[]>([]);
+  const [taskAgent, setTaskAgent] = useState('');
+  const [taskBusy, setTaskBusy] = useState(false);
+  const [taskError, setTaskError] = useState('');
+  const [taskLoaded, setTaskLoaded] = useState(false);
+  const [detail, setDetail] = useState<string | null>(null);
+  async function refreshTasks() {
+    if (!selected) return;
+    setTaskBusy(true); setTaskError(''); setTaskLoaded(false);
+    try {
+      setTasks(await request<Task[]>(session, `/tasks?project_id=${encodeURIComponent(selected.id)}`));
+      setTaskLoaded(true);
+    } catch (error) { setTaskError(error instanceof Error ? error.message : 'Unable to load tasks.'); }
+    finally { setTaskBusy(false); }
+  }
+  function clearTasks() {
+    setTasks([]); setTaskLoaded(false); setDetail(null); setDependencies([]); setTaskError('');
+    setTaskTitle(''); setAcceptance(''); setTaskAgent('');
+  }
+  async function createTask(event: React.FormEvent) {
+    event.preventDefault(); if (!selected) return;
+    setTaskBusy(true); setTaskError('');
+    try {
+      const saved = await request<Task>(session, '/tasks', { project_id: selected.id, title: taskTitle, acceptance, dependencies });
+      setTasks(current => [...current, saved]); setDetail(saved.id);
+      setTaskTitle(''); setAcceptance(''); setDependencies([]);
+    } catch (error) { setTaskError(error instanceof Error ? error.message : 'Unable to create task.'); }
+    finally { setTaskBusy(false); }
+  }
+  async function taskAction(task: Task, assign = false) {
+    setTaskBusy(true); setTaskError('');
+    try {
+      const saved = await request<Task>(session, `/tasks/${encodeURIComponent(task.id)}/${assign ? 'assignments' : 'transitions'}`,
+        assign ? { expected_version: task.version, agent_id: taskAgent } :
+          { expected_version: task.version, state: 'ready', note: 'Marked ready by human in desktop.' });
+      setTasks(current => current.map(t => t.id === saved.id ? saved : t)); setDetail(saved.id);
+    } catch (error) { setTaskError(error instanceof Error ? error.message : 'Unable to update task.'); }
+    finally { setTaskBusy(false); }
+  }
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [selected, setSelected] = useState<Project | null>(null);
   const [projectName, setProjectName] = useState('');
@@ -45,7 +92,7 @@ function App() {
     finally { setSaving(false); }
   }
   async function registerProject(event: React.FormEvent) {
-    event.preventDefault(); setProjectBusy(true); setProjectError('');
+    event.preventDefault(); clearTasks(); setProjectBusy(true); setProjectError('');
     try {
       const saved = await request<Project>(session, '/projects', { name: projectName, root: projectRoot });
       setProjects(current => [...current, saved]); setSelected(saved);
@@ -54,7 +101,7 @@ function App() {
     finally { setProjectBusy(false); }
   }
   async function selectProject(id: string) {
-    setSelected(null); setProjectError('');
+    clearTasks(); setSelected(null); setProjectError('');
     if (!id) return;
     setProjectBusy(true);
     try { setSelected(await request<Project>(session, `/projects/${encodeURIComponent(id)}`)); }
@@ -63,7 +110,7 @@ function App() {
   }
   async function connect(event: React.FormEvent) {
     event.preventDefault();
-    setBusy(true);
+    setBusy(true); clearTasks();
     setAgents([]); setProviders([]); setProjects([]); setSelected(null); setProjectError(''); setSession(''); setEditor(null);
     try {
       const [nextAgents, nextProviders, nextProjects] = await Promise.all([
@@ -79,19 +126,19 @@ function App() {
       <p>Many minds. One mission.</p></header>
     <section aria-labelledby="connection"><h2 id="connection">Your workspace</h2>
       <form onSubmit={connect}><label htmlFor="token">Engine session token</label>
-        <div className="connect"><input id="token" type="password" value={token} onChange={e => setToken(e.target.value)} disabled={busy || saving || projectBusy} autoComplete="off" required />
-        <button disabled={busy || saving || projectBusy || editor !== null}>{busy ? 'Connecting…' : 'Connect'}</button></div></form>
+        <div className="connect"><input id="token" type="password" value={token} onChange={e => setToken(e.target.value)} disabled={busy || saving || projectBusy || taskBusy} autoComplete="off" required />
+        <button disabled={busy || saving || projectBusy || taskBusy || editor !== null}>{busy ? 'Connecting…' : 'Connect'}</button></div></form>
       <p role="status">{status}</p></section>
     <section aria-labelledby="projects"><h2 id="projects">Projects</h2>
       <label htmlFor="project-selection">Selected project</label>
-      <select id="project-selection" value={selected?.id ?? ''} disabled={!session || busy || projectBusy}
+      <select id="project-selection" value={selected?.id ?? ''} disabled={!session || busy || projectBusy || taskBusy}
         onChange={e => { void selectProject(e.target.value); }}>
         <option value="">Choose a registered project</option>
         {projects.map(p => <option key={p.id} value={p.id}>{p.name} — {p.root}</option>)}
       </select>
       {selected && <p role="status">Selected {selected.name}: {selected.root}</p>}
       <form className="project-editor" onSubmit={registerProject}>
-        <fieldset disabled={!session || busy || projectBusy}>
+        <fieldset disabled={!session || busy || projectBusy || taskBusy}>
           <legend>Register a Git checkout</legend>
           <label htmlFor="project-name">Project name<input id="project-name" required maxLength={120} pattern=".*\S.*"
             value={projectName} onChange={e => setProjectName(e.target.value)} /></label>
@@ -101,7 +148,41 @@ function App() {
         </fieldset>
       </form>
       {projectError && <p role="alert">{projectError} Registration entries are retained for retry.</p>}
-      <p>Selection lasts for this connection. Registration persists across restarts. Tasks and execution are not available yet.</p>
+      <p>Selection lasts for this connection. Registration persists across restarts. Load tasks below after selecting a project. Execution is not enabled yet.</p>
+    </section>
+    <section aria-labelledby="tasks"><h2 id="tasks">Tasks and assignments</h2>
+      <p>Choose a project, then load its tasks. Assignments preserve the agent configuration at assignment time.</p>
+      <button type="button" disabled={!selected || taskBusy || projectBusy || busy} onClick={() => { void refreshTasks(); }}>Refresh tasks</button>
+      {taskError && <p role="alert">{taskError} Your draft is retained; refresh before retrying a stale action.</p>}
+      {selected && taskLoaded && <>
+        <form className="task-editor" onSubmit={createTask}><fieldset disabled={taskBusy}>
+          <legend>Create task in {selected.name}</legend>
+          <label htmlFor="task-title">Task title<input id="task-title" required maxLength={240} pattern=".*\S.*" value={taskTitle} onChange={e => setTaskTitle(e.target.value)} /></label>
+          <label htmlFor="task-acceptance">Acceptance criteria<textarea id="task-acceptance" required maxLength={16000} value={acceptance} onChange={e => setAcceptance(e.target.value)} /></label>
+          <fieldset><legend>Dependencies — must complete before this task is ready</legend>
+            {tasks.length === 0 && <p>No existing tasks in this project.</p>}
+            {tasks.map(task => <label key={task.id}><input type="checkbox" checked={dependencies.includes(task.id)}
+              onChange={e => setDependencies(current => e.target.checked ? [...current, task.id] : current.filter(id => id !== task.id))} />{task.title} ({task.state})</label>)}
+          </fieldset>
+          <button>Create task</button>
+        </fieldset></form>
+        <label htmlFor="task-agent">Agent for next assignment<select id="task-agent" value={taskAgent} disabled={taskBusy} onChange={e => setTaskAgent(e.target.value)}>
+          <option value="">Choose a configured agent</option>{agents.map(a => <option key={a.id} value={a.id}>{a.name} — {a.role}</option>)}
+        </select></label>
+        {tasks.length === 0 && <p>No tasks yet.</p>}
+        {tasks.map(task => <article key={task.id}><h3>{task.title}</h3><p>State: {task.state} · revision {task.version}</p>
+          <button type="button" disabled={taskBusy} onClick={() => setDetail(task.id)}>View {task.title}</button>
+          {task.state === 'queued' && <button type="button" disabled={taskBusy} onClick={() => { void taskAction(task); }}>Mark {task.title} ready</button>}
+          {task.state === 'ready' && <button type="button" disabled={taskBusy || !taskAgent} onClick={() => { void taskAction(task, true); }}>Assign {task.title}</button>}
+          {detail === task.id && <div><h4>Acceptance criteria</h4><p style={{ whiteSpace: 'pre-wrap' }}>{task.acceptance}</p>
+            <p>Dependencies: {task.dependencies.length ? task.dependencies.map(id => tasks.find(t => t.id === id)?.title ?? id).join(', ') : 'None'}</p>
+            <h4>Assignment history</h4>{task.assignments.length === 0 && <p>Unassigned.</p>}
+            {task.assignments.map(a => <p key={a.id}>{a.snapshot.name} · {a.snapshot.role} · {a.snapshot.provider}/{a.snapshot.model} (saved configuration)</p>)}
+            <h4>Audit history</h4><ol>{task.events.map(event => <li key={event.sequence}>{event.kind}{event.data.to ? ` → ${event.data.to}` : ''} · {event.created_at}{event.data.note ? ` · ${event.data.note}` : ''}</li>)}</ol>
+          </div>}
+        </article>)}
+      </>}
+      <p>Execution, live cancellation, diff review and merge controls are planned. Assigning a task does not run a model or grant tools.</p>
     </section>
     <section aria-labelledby="energy"><h2 id="energy">Team energy</h2>
       <p>Shared provider pools appear once. Local compute is tracked separately.</p>
@@ -137,7 +218,7 @@ function App() {
         {saveError && <p role="alert">{saveError} Your unsaved profile remains here.</p>}
       </form>}
       {agents.length === 0 ? <p className="empty">No agents loaded. Connect, then create your first agent.</p> :
-        <div className="grid">{agents.map(a => <article key={a.id}><h3>{a.name}</h3><p>{a.seniority} · {a.role}</p><small>{a.provider} / {a.model}</small><p><button type="button" disabled={busy || saving || projectBusy || editor !== null} onClick={() => openEditor(a)}>Edit {a.name}</button></p></article>)}</div>}
+        <div className="grid">{agents.map(a => <article key={a.id}><h3>{a.name}</h3><p>{a.seniority} · {a.role}</p><small>{a.provider} / {a.model}</small><p><button type="button" disabled={busy || saving || projectBusy || taskBusy || editor !== null} onClick={() => openEditor(a)}>Edit {a.name}</button></p></article>)}</div>}
     </section>
     <footer>Any agent. Any role. Any model. Any project.</footer>
   </main>;

@@ -80,7 +80,7 @@ def test_edit_preserves_identity_and_all_fields_across_restart(tmp_path):
     with TestClient(create_app(path, TOKEN)) as client:
         assert client.get('/v1/agents', headers=HEADERS).json() == [expected]
     with sqlite3.connect(path) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0] == 2
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 3
 
 
 def test_retrieve_update_boundaries_and_defaults(tmp_path):
