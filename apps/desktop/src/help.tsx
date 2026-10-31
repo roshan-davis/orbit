@@ -47,10 +47,20 @@ export function HelpGuide({ hidden = false }: { hidden?: boolean }) {
   const search = query.trim().toLocaleLowerCase();
   const results = topics.filter(topic => !search || `${topic.title} ${topic.intro} ${topic.steps?.join(' ')} ${topic.example ?? ''} ${textOf(topic.details)}`.toLocaleLowerCase().includes(search));
   return <section hidden={hidden} className="page-view help-guide" aria-label="Orbit Help">
-    <PageHeading eyebrow="THE ORBIT GUIDE" title="A clear path from idea to evidence." description="Understand the pieces. Try one small mission. Keep the final say." />
-    <div className="help-intro"><span className="eyebrow">MANY MINDS. ONE MISSION.</span><h2>Less coordination to remember.<br />More work you can inspect.</h2><p>Working with AI across projects can scatter instructions, lose context and blur who changed what. Orbit brings reusable identities, clear goals and recorded evidence into one local workspace, with deliberate file grants and human decisions.</p><a href="#help-map">See how the pieces fit <span aria-hidden="true">↓</span></a></div>
+    <PageHeading eyebrow="THE ORBIT GUIDE" title="See how Orbit works." description="Start with the pictures. Follow one small example. Open the detailed steps when you need them." />
+    <section id="help-map" className="help-map help-visual-intro" tabIndex={-1} aria-labelledby="help-map-title">
+      <h2 id="help-map-title">Your project. A clear mission. Changes you can inspect.</h2>
+      <p>Stop losing instructions and changes across separate AI conversations. Orbit brings saved agent profiles, clear goals and reviewable changes into one local workspace.</p>
+      <HelpPicture name="orbit-map" title="How the pieces fit" description="Your project and saved agent support a mission. The local engine coordinates an explicitly granted run in a separate worktree. You inspect its result." />
+    </section>
     <div className="help-layout"><aside className="help-index" aria-label="Help topics"><label htmlFor="help-search">Find a topic</label><input id="help-search" type="search" placeholder="Try “review” or “bytes”" value={query} onChange={e => setQuery(e.target.value)} /><p role="status">{search ? `${results.length} matching ${results.length === 1 ? 'topic' : 'topics'}` : 'Your guide, at your pace'}</p><nav aria-label="Help table of contents"><a href="#help-map">The big picture</a>{results.map(topic => <a key={topic.id} href={`#help-${topic.id}`}><span aria-hidden="true">{String(topics.indexOf(topic) + 1).padStart(2, '0')}</span>{topic.title}</a>)}</nav>{search && <button type="button" className="button button--quiet" onClick={() => setQuery('')}>Clear search</button>}</aside>
-    <div className="help-reading"><section id="help-map" className="help-map" tabIndex={-1} aria-labelledby="help-map-title"><span className="eyebrow">THE BIG PICTURE</span><h2 id="help-map-title">A few building blocks. One deliberate flow.</h2><div className="help-blocks"><article><span>01 / PLACE</span><h3>Project</h3><p>Your registered Git repository. Work stays scoped to the selected project.</p></article><article><span>02 / PEOPLE</span><h3>Persistent agents</h3><p>Reusable identities with roles and instructions, independent of model providers.</p></article><article><span>03 / PURPOSE</span><h3>Mission</h3><p>A specific outcome, acceptance criteria and dependencies, assigned as a saved snapshot.</p></article><article><span>04 / COORDINATION</span><h3>Local engine</h3><p>Saves profiles and evidence. Runs only explicitly granted local file work.</p></article></div><ol className="help-flow" aria-label="Mission workflow"><li><strong>Define & assign</strong><span>Choose the goal and saved identity</span></li><li><strong>Grant & run</strong><span>Named files → isolated worktree</span></li><li><strong>Inspect & review</strong><span>Saved diff + actual human evidence</span></li><li><strong>Human completion</strong><span>Record sign-off; Git stays separate</span></li></ol><p className="help-caption">Read the flow in order: a project and saved agent support a mission; an explicit grant allows a bounded local run in a separate checkout; you inspect the evidence, record review and decide completion. Revision loops back through assignment. No automatic merge or push.</p></section>
+    <div className="help-reading">
+      {!search && <section className="help-visual-story" aria-labelledby="help-story-title">
+        <span className="eyebrow">FOLLOW ONE SMALL MISSION</span>
+        <h2 id="help-story-title">From “please change this” to “I checked it”.</h2>
+        <HelpPicture name="mission-flow" title="The five decisions in a mission" description="Define and assign → grant and run → inspect changes → record a real review → explicit human completion. Request revision returns through assignment. Completion never merges or pushes Git." />
+        <HelpPicture name="greeting-example" title="A one-file example" description="Hypothetical example: grant greeting.txt with acceptance Hello Orbit. Orbit uses a separate worktree. Inspect the diff from Hello world to Hello Orbit, then review and decide. Tests and Git integration remain manual." />
+      </section>}
     {results.length === 0 && <section className="help-topic"><h2>No matching topics</h2><p>Try a shorter phrase such as “files”, “engine” or “revision”, or clear the search to read the whole guide.</p></section>}
     {results.map(topic => <article key={topic.id} id={`help-${topic.id}`} className="help-topic" tabIndex={-1} aria-labelledby={`help-title-${topic.id}`}><span className="eyebrow">{String(topics.indexOf(topic) + 1).padStart(2, '0')} / THE PRACTICAL PART</span><h2 id={`help-title-${topic.id}`}>{topic.title}</h2><p className="help-lead">{topic.intro}</p>{topic.steps && <ol className="help-steps">{topic.steps.map(step => <li key={step}>{step}</li>)}</ol>}{topic.example && <aside className="help-example"><span className="eyebrow">HYPOTHETICAL EXAMPLE</span><p>{topic.example}</p></aside>}{topic.steps ? <details className="help-detail"><summary>Details & limits</summary><div>{topic.details}</div></details> : topic.details}<a className="help-back" href="#help-search">Back to topics ↑</a></article>)}
     </div></div>
@@ -61,4 +71,15 @@ function textOf(node: React.ReactNode): string {
   if (Array.isArray(node)) return node.map(textOf).join(' ');
   if (React.isValidElement<{ children?: React.ReactNode }>(node)) return textOf(node.props.children);
   return '';
+}
+
+function HelpPicture({ name, title, description }: { name: string; title: string; description: string }) {
+  return <figure className="help-illustration">
+    <h3>{title}</h3>
+    <picture>
+      <source media="(max-width: 900px)" srcSet={`/help/${name}-narrow.svg`} />
+      <img src={`/help/${name}.svg`} alt={description} width="960" height={name === 'orbit-map' ? 350 : name === 'mission-flow' ? 420 : 330} />
+    </picture>
+    <figcaption>{description}</figcaption>
+  </figure>;
 }

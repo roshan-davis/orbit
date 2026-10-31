@@ -90,6 +90,7 @@ or telemetry is implied. Model inventory alone is not execution readiness.
 `apps/desktop/src/help.tsx` owns current workflow guidance and examples; `help.css`
 uses the existing semantic tokens. Help remains available offline and while other
 requests are pending. Search filters complete topics, including disclosed detail
-text. Native topic links, ordered workflow text and disclosures provide keyboard
-and assistive-technology equivalents to the building blocks and visual flow.
+text. The guide leads with bundled SVG diagrams, with independently composed vertical
+versions for narrow windows. Every image has meaningful alternative text and a
+visible text equivalent. Native topic links and disclosures support keyboard use.
 Update affected guidance in the same PR as user-facing behavior (see AGENTS.md).
