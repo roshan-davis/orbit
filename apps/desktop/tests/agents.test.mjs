@@ -264,3 +264,34 @@ test('mission composer, focused selection and keyboard detail tabs preserve draf
   h.all().find(n => n.props.role === 'tab' && h.text(n) === 'Activity').props.onClick();
   assert.ok(h.all().find(n => n.props.role === 'tabpanel' && !n.props.hidden).props.id.endsWith('panel-activity'));
 });
+
+test('review rejection requires a distinct reviewer, revision reassigns, completion is explicit', async () => {
+  const h = host(); await withProject(h);
+  const reviewer = { ...saved, id: 'reviewer-id', name: 'Reviewer fixture' };
+  await connected(h, [saved, reviewer]);
+  h.change('project-name', 'Repo'); h.change('project-root', '/canonical/repo');
+  h.replies.push({ status: 201, body: { id: 'p', name: 'Repo', root: '/canonical/repo' } });
+  await h.all().find(n => n.props.className === 'project-editor').props.onSubmit({ preventDefault() {} });
+  const reviewing = { ...task, state: 'awaiting_review', version: 4, assignments: [{ id: 'a', agent_id: saved.id, snapshot: saved }] };
+  h.replies.push({ status: 200, body: [reviewing] });
+  h.button('Refresh tasks').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.all().filter(n => n.type === 'option' && n.props.value === saved.id).length, 0);
+  assert.equal(h.button('Request revision').props.disabled, true);
+  h.change('task-agent', reviewer.id); h.change('review-note-task-1', 'Needs a boundary check.');
+  h.replies.push({ status: 200, body: { ...reviewing, state: 'ready', version: 5 } });
+  h.button('Request revision').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(JSON.parse(h.calls.at(-1).body), { expected_version: 4, state: 'ready', note: 'Needs a boundary check.', reviewer_id: reviewer.id });
+  assert.ok(h.button('Assign Check parser'));
+  const approval = { ...reviewing, state: 'awaiting_approval', version: 6 };
+  h.replies.push({ status: 200, body: [approval] });
+  h.button('Refresh tasks').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  h.change('review-note-task-1', 'Acceptance evidence inspected.');
+  assert.equal(h.button('Approve completion of Check parser').props.disabled, true);
+  const approvalLabel = h.all().find(n => n.type === 'label' && h.text(n).includes('I explicitly approve task completion'));
+  const checkbox = approvalLabel.props.children.flat(Infinity).find(n => n?.type === 'input');
+  checkbox.props.onChange({ target: { checked: true } });
+  h.replies.push({ status: 200, body: { ...approval, state: 'completed', version: 7 } });
+  h.button('Approve completion of Check parser').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(JSON.parse(h.calls.at(-1).body), { expected_version: 6, state: 'completed', note: 'Acceptance evidence inspected.', human_approval: true });
+  assert.ok(h.calls.every(call => !/merge|push/.test(call.url)));
+});

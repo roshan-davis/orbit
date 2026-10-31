@@ -29,6 +29,11 @@ Observer starts with periodic analysis of completed tasks, not continuous expens
 
 ## UX and operational quality
 
+Follow the approved lavender/neutral visual direction with focused decision steps,
+progressive disclosure and evidence-based statuses. File context limits are UTF-8
+bytes. Recorded review is a human-session assertion using a distinct configured
+identity; mission completion never merges or pushes Git.
+
 Use the project [design system and component library](design-system.md): semantic theme tokens, consistent controls and status treatments, clear navigation, focused list/detail workspaces and progressive disclosure. Support dark/light themes and smaller windows. Put the user’s current mission and next action ahead of setup; avoid presenting every form and evidence section as one long stacked page.
 Show missions, team assignments, diffs, approvals, provider readiness, agent energy references and independent pool dashboards. Provide accessible labels, keyboard interaction and readable states. Unknown quota must never look full or depleted. Surface blocked authentication, crashes, cancellation and stale observations. Store locally by default; no telemetry upload. Never persist tokens in prompts/logs. Support restart recovery with no duplicate task execution. Initial target is local macOS development; other desktop packaging follows validation.
 

@@ -45,12 +45,12 @@ function App() {
     } catch (error) { setTaskError(error instanceof Error ? error.message : 'Run action failed. Refresh to check the recorded outcome.'); }
     finally { setTaskBusy(false); }
   }
-  async function recordReview(task: Task, approval = false) {
+  async function recordReview(task: Task, approval = false, revision = false) {
     setTaskBusy(true); setTaskError('');
     try {
       const updated = await request<Task>(session, `/tasks/${encodeURIComponent(task.id)}/transitions`, {
-        expected_version: task.version, state: approval ? 'completed' : 'awaiting_approval', note: reviewNote,
-        ...(approval ? { human_approval: approveCompletion } : { reviewer_id: taskAgent }),
+        expected_version: task.version, state: revision ? 'ready' : approval ? 'completed' : 'awaiting_approval', note: reviewNote,
+        ...(approval ? { human_approval: approveCompletion } : task.state === 'awaiting_review' ? { reviewer_id: taskAgent } : {}),
       });
       setTasks(current => current.map(t => t.id === updated.id ? updated : t));
       setReviewNote(''); setApproveCompletion(false);
@@ -69,7 +69,7 @@ function App() {
   const [detail, setDetail] = useState<string | null>(null);
   async function refreshTasks() {
     if (!selected) return;
-    setTaskBusy(true); setTaskError(''); setTaskLoaded(false);
+    setTaskBusy(true); setTaskError(''); setTaskLoaded(false); setRunGrant(false); setApproveCompletion(false);
     try {
       setTasks(await request<Task[]>(session, `/tasks?project_id=${encodeURIComponent(selected.id)}`));
       setTaskLoaded(true);
@@ -87,7 +87,7 @@ function App() {
     try {
       const saved = await request<Task>(session, '/tasks', { project_id: selected.id, title: taskTitle, acceptance, dependencies });
       setTasks(current => [...current, saved]); setDetail(saved.id);
-      setTaskTitle(''); setAcceptance(''); setDependencies([]); setComposing(false);
+      setTaskTitle(''); setAcceptance(''); setDependencies([]); setComposing(false); setTaskAgent(''); setRunGrant(false); setApproveCompletion(false); setReviewNote('');
     } catch (error) { setTaskError(error instanceof Error ? error.message : 'Unable to create task.'); }
     finally { setTaskBusy(false); }
   }
@@ -97,7 +97,7 @@ function App() {
       const saved = await request<Task>(session, `/tasks/${encodeURIComponent(task.id)}/${assign ? 'assignments' : 'transitions'}`,
         assign ? { expected_version: task.version, agent_id: taskAgent } :
           { expected_version: task.version, state: 'ready', note: 'Marked ready by human in desktop.' });
-      setTasks(current => current.map(t => t.id === saved.id ? saved : t)); setDetail(saved.id);
+      setTasks(current => current.map(t => t.id === saved.id ? saved : t)); setDetail(saved.id); setRunGrant(false); setApproveCompletion(false); setReviewNote('');
     } catch (error) { setTaskError(error instanceof Error ? error.message : 'Unable to update task.'); }
     finally { setTaskBusy(false); }
   }
@@ -177,9 +177,9 @@ function App() {
       <nav>{([['missions', 'Missions', 'missions'], ['agents', 'Agents', 'agents'], ['providers', 'Models & capacity', 'providers'], ['workspace', 'Workspace setup', 'workspace']] as const).map(([id, label, icon]) =>
         <Button key={id} type="button" variant="quiet" className={`nav-item ${view === id ? 'is-active' : ''}`} aria-current={view === id ? 'page' : undefined} aria-label={label} title={label}
           disabled={changingWorkspace} onClick={() => navigate(id)}><Icon name={icon} />{label}{id === 'missions' && taskLoaded && <span className="nav-count">{tasks.length}</span>}</Button>)}</nav>
-      <div className="sidebar-bottom"><div className="engine-status"><span className={`status-light ${session ? 'is-connected' : ''}`} /><div><strong>{session ? 'Engine connected' : 'Engine offline'}</strong><small>Local on this device</small></div></div>
+      <div className="sidebar-bottom"><div className="engine-status"><span className={`status-light ${session ? 'is-connected' : ''}`} /><div><strong>{session ? 'Session connected' : 'Not connected'}</strong><small>Local on this device</small></div></div>
         <Button type="button" variant="quiet" className="theme-switch" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'} />Switch to {theme === 'dark' ? 'light' : 'dark'} theme</Button>
-        <small className="privacy-note">Private by design · Local preview</small></div>
+        <small className="privacy-note">Local workspace · Preview</small></div>
     </aside>
     <div className="workspace-shell">
       <header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{view === 'missions' ? 'Missions' : view === 'agents' ? 'Agents' : view === 'providers' ? 'Models & capacity' : 'Setup'}</strong></div>
@@ -190,7 +190,7 @@ function App() {
         {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
       </select>
 </div></header>
-      <div className="page-content">
+      <div className="page-content">{projectError && <p role="alert">{projectError} Check the repository folder in Workspace setup, then try again.</p>}
         <section aria-labelledby="missions-title" hidden={view !== 'missions'} className="page-view missions-view">
           <PageHeading eyebrow="MISSION CONTROL" title={selected ? selected.name : 'A little focus. A lot of possibility.'}
             description={selected ? 'Give your team a clear goal. Follow the work from assignment to review.' : 'Bring your project, assemble your team, and turn an idea into a mission.'}
@@ -203,41 +203,44 @@ function App() {
           {selected && <>
             <div className="mission-overview"><div><span>PROJECT</span><strong>{selected.name}</strong></div><div><span>MISSIONS</span><strong>{taskLoaded ? tasks.length : '—'}</strong></div><div><span>IN PROGRESS</span><strong>{taskLoaded ? tasks.filter(t => t.state === 'running').length : '—'}</strong></div><div><span>NEED REVIEW</span><strong>{taskLoaded ? tasks.filter(t => ['awaiting_review', 'awaiting_approval'].includes(t.state)).length : '—'}</strong></div><Button type="button" disabled={!selected || taskBusy || projectBusy || busy} onClick={() => { void refreshTasks(); }}><Icon name="refresh" />Refresh tasks</Button></div>
             {taskError && <p role="alert">{taskError} Your draft is retained; refresh before retrying a stale action.</p>}
-            {!taskLoaded && <Panel><EmptyState icon="missions" title="Ready when you are">Refresh tasks to load this project's missions and saved assignments.</EmptyState></Panel>}
+            {!taskLoaded && <Panel><EmptyState icon="missions" title="Ready when you are">{taskBusy ? 'Loading saved missions…' : "Refresh tasks to load this project's missions and saved assignments."}</EmptyState></Panel>}
             {taskLoaded && <>
         <form hidden={!composing} className="task-editor" onSubmit={createTask}><fieldset disabled={taskBusy}>
           <legend>Create task in {selected.name}</legend>
           <label htmlFor="task-title">Task title<input id="task-title" required maxLength={240} pattern=".*\S.*" value={taskTitle} onChange={e => setTaskTitle(e.target.value)} /></label>
           <label htmlFor="task-acceptance">Acceptance criteria<textarea id="task-acceptance" required maxLength={16000} value={acceptance} onChange={e => setAcceptance(e.target.value)} /></label>
-          <fieldset><legend>Dependencies — must complete before this task is ready</legend>
+          <details><summary>Dependencies (optional)</summary><fieldset><legend>Must complete before this task is ready</legend>
             {tasks.length === 0 && <p>No existing tasks in this project.</p>}
             {tasks.map(task => <label key={task.id}><input type="checkbox" checked={dependencies.includes(task.id)}
               onChange={e => setDependencies(current => e.target.checked ? [...current, task.id] : current.filter(id => id !== task.id))} />{task.title} ({task.state})</label>)}
-          </fieldset>
+          </fieldset></details>
           <div className="actions"><Button variant="primary">Create task</Button><Button type="button" onClick={() => setComposing(false)}>Close draft</Button></div>
         </fieldset></form>
 
               <div className="mission-workspace"><Panel className="mission-list"><div className="panel-title"><h2>Missions</h2><span className="count">{tasks.length}</span></div>
                 {tasks.length === 0 && <EmptyState icon="missions" title="Your first mission awaits">Create a mission with a clear outcome and acceptance criteria.</EmptyState>}
-                {tasks.map(task => <Button type="button" key={task.id} variant="quiet" className={`task-row ${focusedTask?.id === task.id ? 'is-selected' : ''}`} disabled={taskBusy} onClick={() => { setDetail(task.id); setEvidenceTab('overview'); setRunGrant(false); setReviewNote(''); setApproveCompletion(false); }} aria-label={`View ${task.title}`} aria-pressed={focusedTask?.id === task.id}><span className="task-row-title">{task.title}</span><Badge state={task.state} /><span className="task-row-meta">{task.assignments.slice(-1)[0]?.snapshot.name ?? 'No agent assigned'}</span></Button>)}
+                {tasks.map(task => <Button type="button" key={task.id} variant="quiet" className={`task-row ${focusedTask?.id === task.id ? 'is-selected' : ''}`} disabled={taskBusy} onClick={() => { setDetail(task.id); setEvidenceTab('overview'); setTaskAgent(''); setRunGrant(false); setReviewNote(''); setApproveCompletion(false); }} aria-label={`View ${task.title}`} aria-pressed={focusedTask?.id === task.id}><span className="task-row-title">{task.title}</span><Badge state={task.state} /><span className="task-row-meta">{task.assignments.slice(-1)[0]?.snapshot.name ?? 'No agent assigned'}</span></Button>)}
               </Panel><Panel className="mission-detail-panel">
                 {focusedTask ? <>
-        {tasks.filter(task => task.id === focusedTask?.id).map(task => <article key={task.id} className="task-detail"><div className="task-detail-heading"><div><span className="eyebrow">MISSION DETAIL</span><h2>{task.title}</h2></div><Badge state={task.state} /></div>        {['ready', 'awaiting_review'].includes(focusedTask.state) && <div className="assignment-control"><label htmlFor="task-agent">{focusedTask.state === 'awaiting_review' ? 'Independent reviewer' : 'Agent for next assignment'}<select id="task-agent" value={taskAgent} disabled={taskBusy} onChange={e => setTaskAgent(e.target.value)}>
+        {tasks.filter(task => task.id === focusedTask?.id).map(task => <article key={task.id} className="task-detail"><div className="task-detail-heading"><div><span className="eyebrow">MISSION DETAIL</span><h2>{task.title}</h2></div><Badge state={task.state} /></div>
+        <div className="step-note"><strong>{({queued: '01 · Define readiness', ready: '02 · Assign an agent', assigned: '03 · Grant files and run', running: 'Local run in progress', awaiting_review: '04 · Inspect changes and record review', awaiting_approval: '05 · Your final sign-off', completed: 'Mission completed', blocked: 'Mission blocked', failed: 'Run stopped or interrupted', cancelled: 'Mission cancelled'} as Record<string, string>)[task.state] ?? task.state}</strong>
+        {({queued: 'Confirm the acceptance criteria and completed dependencies before marking ready.', ready: 'Choose a saved agent profile. Its configuration is captured for this assignment.', assigned: 'Approve specific files before starting a local model. No commands or tests run automatically.', running: 'Refresh for saved progress. Cancellation retains the worktree for inspection.', awaiting_review: 'Review the stored diff and test evidence yourself. Recording review does not execute a reviewer.', awaiting_approval: 'Record your approval note. Completion does not merge or push Git.', completed: 'Sign-off is recorded in Orbit. Git integration remains a separate decision.', blocked: 'Inspect activity and dependencies, then mark ready when the blocker is resolved.', failed: 'Inspect the retained worktree and logs. Create a new mission to retry; interrupted work never restarts automatically.', cancelled: 'Inspect retained changes and logs. Create a new mission if you want to try again.'} as Record<string, string>)[task.state]}</div>
+        {focusedTask.state === 'ready' && <div className="assignment-control"><label htmlFor="task-agent">Agent for next assignment<select id="task-agent" value={taskAgent} disabled={taskBusy} onChange={e => setTaskAgent(e.target.value)}>
           <option value="">Choose a configured agent</option>{agents.map(a => <option key={a.id} value={a.id}>{a.name} — {a.role}</option>)}
         </select></label></div>}
-        <details className="run-permissions" hidden={focusedTask.state !== 'assigned'}><summary>File access for your next run<span>Choose exactly what the model can read and change</span></summary><fieldset disabled={taskBusy}><legend className="sr-only">Local file run permissions — for the next Start action</legend>
+        <details className="run-permissions" open={focusedTask.state === 'assigned'} hidden={focusedTask.state !== 'assigned'}><summary>File access for your next run<span>Choose exactly what the model can read and change</span></summary><fieldset disabled={taskBusy}><legend className="sr-only">Local file run permissions — for the next Start action</legend>
           <label htmlFor="run-parent">Existing canonical worktree parent outside your project<input id="run-parent" value={runParent}
             placeholder="/Users/you/OrbitWorktrees" onChange={e => { setRunParent(e.target.value); setRunGrant(false); }} /></label>
           <label htmlFor="run-files">Granted relative text files — one per line<textarea id="run-files" value={runFiles}
             placeholder="src/example.py" onChange={e => { setRunFiles(e.target.value); setRunGrant(false); }} /></label>
-          <label htmlFor="run-grant"><input id="run-grant" type="checkbox" checked={runGrant}
+          <label className="grant-note" htmlFor="run-grant"><input id="run-grant" type="checkbox" checked={runGrant}
             onChange={e => setRunGrant(e.target.checked)} />I approve sending these files from the recorded commit to the local model and editing them in a new isolated worktree.</label>
-          <p>At most 16 UTF-8 files, 64 KiB combined context. Existing parent directories only. Hidden files, sensitive filenames, symlinks and commands are blocked. Do not grant files containing secrets.
+          <p>At most 16 UTF-8 files, 65,536 UTF-8 bytes combined file context (64 KiB), not characters. Existing parent directories only. Hidden files, sensitive filenames, symlinks and commands are blocked. Do not grant files containing secrets.
             Uncommitted project changes are preserved and are not included. Inference can take up to two minutes; refresh to see progress.</p>
         </fieldset></details>
 <div className="task-actions">
-          {task.state === 'queued' && <Button type="button" disabled={taskBusy} onClick={() => { void taskAction(task); }} aria-label={`Mark ${task.title} ready`}> Mark ready</Button>}
-          {task.state === 'ready' && <Button type="button" disabled={taskBusy || !taskAgent} onClick={() => { void taskAction(task, true); }} aria-label={`Assign ${task.title}`}> Assign agent</Button>}
+          {['queued', 'blocked'].includes(task.state) && <Button type="button" disabled={taskBusy} onClick={() => { void taskAction(task); }} variant="primary" aria-label={`Mark ${task.title} ready`}> Mark ready</Button>}
+          {task.state === 'ready' && <Button type="button" disabled={taskBusy || !taskAgent} onClick={() => { void taskAction(task, true); }} variant="primary" aria-label={`Assign ${task.title}`}> Assign agent</Button>}
           {task.state === 'assigned' && <Button type="button" disabled={taskBusy || !runGrant || !runParent || !runFiles.trim()}
             variant="primary" onClick={() => { void runAction(task, 'start'); }} aria-label={`Start ${task.title} locally`}> Start locally</Button>}
           {task.assignments.length > 0 && <Button type="button" disabled={taskBusy}
@@ -249,18 +252,21 @@ function App() {
             <div role="tabpanel" id={`mission-${task.id}-panel-overview`} aria-labelledby={`mission-${task.id}-tab-overview`} hidden={evidenceTab !== 'overview'}>
 <h4>Acceptance criteria</h4><p style={{ whiteSpace: 'pre-wrap' }}>{task.acceptance}</p>
             <p>Dependencies: {task.dependencies.length ? task.dependencies.map(id => tasks.find(t => t.id === id)?.title ?? id).join(', ') : 'None'}</p>
-            <h4>Assignment history</h4>{task.assignments.length === 0 && <p>Unassigned.</p>}
+            <details className="assignment-history"><summary>Assignment history</summary>{task.assignments.length === 0 && <p>Unassigned.</p>}
             {task.assignments.map(a => <p key={a.id}>{a.snapshot.name} · {a.snapshot.role} · {a.snapshot.provider}/{a.snapshot.model} (saved configuration)</p>)}
-            {['awaiting_review', 'awaiting_approval'].includes(task.state) && <fieldset disabled={taskBusy}>
-              <legend>Record review evidence — never merges Git</legend>
+            </details>{['awaiting_review', 'awaiting_approval'].includes(task.state) && <fieldset className="review-gate" disabled={taskBusy}>
+              <legend>{task.state === 'awaiting_review' ? 'Record a completed human-session review' : 'Human approval & mission completion'}</legend>
+              {task.state === 'awaiting_review' && <label htmlFor="task-agent">Independent reviewer<select id="task-agent" value={taskAgent} onChange={e => setTaskAgent(e.target.value)}><option value="">Choose a configured agent</option>{agents.filter(a => !task.assignments.some(assignment => assignment.agent_id === a.id)).map(a => <option key={a.id} value={a.id}>{a.name} — {a.role}</option>)}</select></label>}
+              {task.state === 'awaiting_review' && !agents.some(a => !task.assignments.some(assignment => assignment.agent_id === a.id)) && <p>Create another configured identity in Agents before recording a review. Prior authors cannot review this mission.</p>}
               <label htmlFor={`review-note-${task.id}`}>Review or approval evidence<textarea id={`review-note-${task.id}`} value={reviewNote}
                 onChange={e => setReviewNote(e.target.value)} maxLength={4000} /></label>
               {task.state === 'awaiting_review' && <Button type="button" disabled={!reviewNote.trim() || !taskAgent || task.assignments.some(a => a.agent_id === taskAgent)}
-                onClick={() => { void recordReview(task); }}>Record completed independent review for {task.title}</Button>}
+                variant="primary" onClick={() => { void recordReview(task); }}>Record completed independent review for {task.title}</Button>}
               {task.state === 'awaiting_approval' && <><label><input type="checkbox" checked={approveCompletion}
                 onChange={e => setApproveCompletion(e.target.checked)} />I explicitly approve task completion after reviewing its evidence. This does not merge its branch.</label>
-                <Button type="button" disabled={!approveCompletion || !reviewNote.trim()} onClick={() => { void recordReview(task, true); }}>Approve completion of {task.title}</Button></>}
-              <p>Use the agent selector for the distinct reviewer who actually performed the review. Recording an assertion does not run a reviewer.</p>
+                <Button type="button" disabled={!approveCompletion || !reviewNote.trim()} variant="primary" onClick={() => { void recordReview(task, true); }}>Approve completion of {task.title}</Button></>}
+              <Button type="button" disabled={!reviewNote.trim() || (task.state === 'awaiting_review' && (!taskAgent || task.assignments.some(a => a.agent_id === taskAgent)))} onClick={() => { void recordReview(task, false, true); }}>Request revision</Button>
+              <p>Use the agent selector for the distinct reviewer who actually performed the review. This records your session assertion, not autonomous verification. A revision requires a new assignment. Completion never merges or pushes Git.</p>
             </fieldset>}
             </div>
             <div role="tabpanel" id={`mission-${task.id}-panel-changes`} aria-labelledby={`mission-${task.id}-tab-changes`} hidden={evidenceTab !== 'changes'}>
@@ -296,15 +302,15 @@ function App() {
           <label htmlFor="agent-provider">Provider<select id="agent-provider" value={editor.provider} onChange={e => setEditor({ ...editor, provider: e.target.value })}>
             {['ollama', 'claude-code', 'codex-cli', 'gemini-cli'].map(p => <option key={p}>{p}</option>)}
           </select></label>
-          {(['expertise', 'skills', 'tools'] as const).map(field => <label key={field} htmlFor={`agent-${field}`}>
+          <p className="identity-note">Changing provider or model keeps this identity and its instructions. Seniority is assigned authority, not a model quality score. Cloud execution remains disabled in this preview.</p><details><summary>Expertise, skill references & configured tools</summary>{(['expertise', 'skills', 'tools'] as const).map(field => <label key={field} htmlFor={`agent-${field}`}>
             {field === 'skills' ? 'Skill references (include versions when available)' : field === 'tools' ? 'Configured tools' : 'Expertise'} — one per line
             <textarea id={`agent-${field}`} rows={3} value={editor[field].join('\n')}
               onChange={e => setEditor({ ...editor, [field]: e.target.value.split('\n') })} />
           </label>)}
-          <label htmlFor="agent-instructions">Instructions<textarea id="agent-instructions" rows={6} value={editor.instructions}
+          </details><label htmlFor="agent-instructions">Instructions<textarea id="agent-instructions" rows={6} value={editor.instructions}
             onChange={e => setEditor({ ...editor, instructions: e.target.value })} /></label>
           <p>Tool names describe the profile. File access is approved separately when you start a local run.</p>
-          <div className="actions"><Button type="submit">{saving ? 'Saving…' : 'Save agent'}</Button>
+          <div className="actions"><Button type="submit" variant="primary">{saving ? 'Saving…' : 'Save agent'}</Button>
             <Button type="button" onClick={() => { setEditor(null); setSaveError(''); }}>Cancel</Button></div>
         </fieldset>
         {saveError && <p role="alert">{saveError} Your unsaved profile remains here.</p>}
@@ -338,7 +344,7 @@ function App() {
           <Button variant="primary">{projectBusy ? 'Checking project…' : 'Register project'}</Button>
         </fieldset>
       </form>
-      {projectError && <p role="alert">{projectError} Registration entries are retained for retry.</p>}
+
       <p>Your registration is saved locally. Choose a project from the top bar to work on its missions.</p>
     </section>
 
