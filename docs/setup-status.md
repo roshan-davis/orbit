@@ -23,6 +23,6 @@
 - GitHub CLI was absent. An official CLI binary was downloaded under `/tmp/orbit-gh`. Its standalone auth check initially reported no sign-in; the later check using Git's existing saved HTTPS credential authenticated successfully. No new login flow was needed.
 
 ## Publication and ongoing workflow
-GitHub repository creation succeeded with public visibility. The initial push was rejected because the saved HTTPS token lacks `workflow` scope for `.github/workflows/checks.yml`; SSH authentication was also unavailable (`Permission denied (publickey)`). The complete local history is preserved and awaits a credential permitted to publish workflows.
+GitHub repository creation succeeded with public visibility. The first push was rejected because the saved HTTPS token lacked `workflow` scope for `.github/workflows/checks.yml`; SSH authentication was also unavailable (`Permission denied (publickey)`). After the owner updated the credential in macOS Keychain, authentication as `roshan-davis` and the complete initial push to `origin/main` succeeded. The source, documentation and CI workflow are published without removing files or rewriting history.
 
 Remote: https://github.com/roshan-davis/orbit. The owner authorized public visibility and the initial push. Future changes should be prepared and validated in a separate branch/worktree, preserving unrelated work. No license selected yet.
