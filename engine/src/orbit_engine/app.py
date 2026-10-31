@@ -10,6 +10,8 @@ from .models import Agent, AgentInput, Project, ProjectInput
 from .projects import ProjectError
 from .providers import declarations
 from .store import Store
+from .tasks import TaskError, TaskInput, AssignmentInput, TransitionInput
+from fastapi.responses import JSONResponse
 
 
 def create_app(db_path: Path | None = None, token: str | None = None) -> FastAPI:
@@ -82,6 +84,30 @@ def create_app(db_path: Path | None = None, token: str | None = None) -> FastAPI
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
         return project
+
+    @app.exception_handler(TaskError)
+    async def task_error(_request, exc):
+        return JSONResponse(status_code=exc.status, content={"detail": str(exc)})
+
+    @app.post("/v1/tasks", status_code=201, dependencies=[Depends(authorize)])
+    def create_task(profile: TaskInput):
+        return app.state.store.create_task(profile)
+
+    @app.get("/v1/tasks", dependencies=[Depends(authorize)])
+    def list_tasks(project_id: str):
+        return app.state.store.list_tasks(project_id)
+
+    @app.get("/v1/tasks/{task_id}", dependencies=[Depends(authorize)])
+    def get_task(task_id: str):
+        return app.state.store.get_task(task_id)
+
+    @app.post("/v1/tasks/{task_id}/assignments", dependencies=[Depends(authorize)])
+    def assign_task(task_id: str, profile: AssignmentInput):
+        return app.state.store.assign_task(task_id, profile)
+
+    @app.post("/v1/tasks/{task_id}/transitions", dependencies=[Depends(authorize)])
+    def transition_task(task_id: str, profile: TransitionInput):
+        return app.state.store.transition_task(task_id, profile)
 
     @app.get("/v1/providers", dependencies=[Depends(authorize)])
     def providers():
