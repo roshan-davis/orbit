@@ -62,3 +62,77 @@ def test_cors_does_not_allow_arbitrary_websites(tmp_path):
         response = client.options("/v1/agents", headers={
             "Origin": "https://untrusted.example", "Access-Control-Request-Method": "GET"})
         assert "access-control-allow-origin" not in response.headers
+
+
+def test_edit_preserves_identity_and_all_fields_across_restart(tmp_path):
+    import sqlite3
+    path = tmp_path / "state.db"
+    profile = {**PROFILE, "skills": ["review@v1", "design@sha256:abc"],
+               "instructions": "Keep all instructions.\nIncluding newlines.", "tools": ["read-files"]}
+    with TestClient(create_app(path, TOKEN)) as client:
+        saved = client.post('/v1/agents', json=profile, headers=HEADERS).json()
+        updated = {**profile, "provider": "codex-cli", "model": "configured-model", "name": "Renamed"}
+        response = client.put(f'/v1/agents/{saved["id"]}', json=updated, headers=HEADERS)
+        assert response.status_code == 200
+        expected = {**updated, "id": saved['id']}
+        assert response.json() == expected
+        assert client.get(f'/v1/agents/{saved["id"]}', headers=HEADERS).json() == expected
+    with TestClient(create_app(path, TOKEN)) as client:
+        assert client.get('/v1/agents', headers=HEADERS).json() == [expected]
+    with sqlite3.connect(path) as db:
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 1
+
+
+def test_retrieve_update_boundaries_and_defaults(tmp_path):
+    with TestClient(create_app(tmp_path / 'state.db', TOKEN)) as client:
+        for headers in ({}, {"Authorization": "Bearer wrong"}):
+            assert client.get('/v1/agents/missing', headers=headers).status_code == 401
+            assert client.put('/v1/agents/missing', json=PROFILE, headers=headers).status_code == 401
+        assert client.get('/v1/agents/missing', headers=HEADERS).status_code == 404
+        assert client.put('/v1/agents/missing', json=PROFILE, headers=HEADERS).status_code == 404
+        saved = client.post('/v1/agents', json=PROFILE, headers=HEADERS).json()
+        assert saved['tools'] == []
+        route = f'/v1/agents/{saved["id"]}'
+        for field in ('name', 'role', 'seniority', 'model'):
+            invalid = {**PROFILE, field: '  \t '}
+            assert client.post('/v1/agents', json=invalid, headers=HEADERS).status_code == 422
+            assert client.put(route, json=invalid, headers=HEADERS).status_code == 422
+        for invalid in ({**PROFILE, 'provider': 'paid-api'}, {'name': 'partial'}, {**PROFILE, 'skills': [123]}):
+            assert client.put(route, json=invalid, headers=HEADERS).status_code == 422
+        assert client.get(route, headers=HEADERS).json() == saved
+        assert client.get('/v1/agents', headers=HEADERS).json() == [saved]
+
+
+def test_cors_permits_only_required_methods(tmp_path):
+    with TestClient(create_app(tmp_path / 'state.db', TOKEN)) as client:
+        for method in ('GET', 'POST', 'PUT', 'DELETE', 'PATCH'):
+            response = client.options('/v1/agents/example', headers={
+                'Origin': 'http://localhost:1420', 'Access-Control-Request-Method': method,
+                'Access-Control-Request-Headers': 'authorization,content-type'})
+            assert response.status_code == (200 if method in ('GET', 'POST', 'PUT') else 400)
+
+
+def test_legacy_profile_remains_readable_and_can_be_repaired(tmp_path):
+    import json
+    import sqlite3
+    from orbit_engine.store import Store
+    path = tmp_path / "legacy.db"
+    Store(path)
+    legacy = {**PROFILE, "id": "legacy-id", "name": " ", "role": " ",
+              "seniority": "", "model": " ", "skills": ["review@v1"],
+              "tools": [], "instructions": "Preserve legacy instructions"}
+    with sqlite3.connect(path) as db:
+        db.execute("INSERT INTO agents VALUES (?, ?)", (legacy["id"], json.dumps(legacy)))
+    with TestClient(create_app(path, TOKEN)) as client:
+        listed = client.get('/v1/agents', headers=HEADERS)
+        assert listed.status_code == 200
+        assert listed.json()[0]['seniority'] == ''
+        assert listed.json()[0]['name'] == ' '
+        assert client.get('/v1/agents/legacy-id', headers=HEADERS).status_code == 200
+        assert client.put('/v1/agents/legacy-id', json=legacy, headers=HEADERS).status_code == 422
+        repaired = {**legacy, **PROFILE}
+        response = client.put('/v1/agents/legacy-id', json=repaired, headers=HEADERS)
+        assert response.status_code == 200
+        assert response.json() == {**repaired, "expertise": PROFILE['expertise']}
+    with TestClient(create_app(path, TOKEN)) as client:
+        assert client.get('/v1/agents/legacy-id', headers=HEADERS).json() == response.json()
