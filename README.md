@@ -4,7 +4,7 @@
 Orbit is a local-first desktop mission control for persistent, configurable AI agents working across your projects. This is an independent repository, separate from Atelier.
 
 ## Current state
-Foundation scaffold: Tauri 2 + React/TypeScript UI, Python/FastAPI engine, SQLite-backed agent profiles, provider capability declarations, and tests. Live CLI execution, scheduling, worktree automation, and skill publishing are planned, not implemented. The UI currently lists persisted agents and shows honestly unknown provider energy; create/edit controls are a later milestone. The engine is started manually in development; packaged sidecar supervision is not implemented.
+Foundation scaffold: Tauri 2 + React/TypeScript UI, Python/FastAPI engine, SQLite-backed agent profiles, provider capability declarations, and tests. Live CLI execution, scheduling, worktree automation, and skill publishing are planned, not implemented. The UI creates/edits persisted agents, registers/selects validated Git checkout roots, and shows honestly unknown provider energy. Project selection is connection-local; registrations persist across restarts. The engine is started manually in development; packaged sidecar supervision is not implemented.
 
 ## Develop
 Prerequisites: Python 3.11+, Node 22.12+ (or supported newer LTS), npm, and Rust stable plus [Tauri platform prerequisites](https://v2.tauri.app/start/prerequisites/) for desktop builds.

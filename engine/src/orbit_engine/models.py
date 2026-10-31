@@ -25,3 +25,22 @@ class AgentInput(AgentProfile):
 
 class Agent(AgentProfile):
     id: str
+
+
+class ProjectInput(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    root: str = Field(min_length=1, max_length=4096)
+
+    @field_validator("name")
+    @classmethod
+    def meaningful_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Must contain non-whitespace characters")
+        return value
+
+
+class Project(ProjectInput):
+    id: str
+    git_directory: str
+    common_directory: str

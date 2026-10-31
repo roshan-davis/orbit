@@ -35,7 +35,7 @@ function host() {
   const button = label => all().find(n => n.type === 'button' && text(n) === label);
   return { agents, calls, replies, all, text, byId, button,
     change(id, value) { byId(id).props.onChange({ target: { value } }); },
-    async submit(editor = false) { await all().find(n => n.type === 'form' && !!n.props.className === editor).props.onSubmit({ preventDefault() {} }); },
+    async submit(editor = false) { await all().find(n => n.type === 'form' && (editor ? n.props.className === 'editor' : !n.props.className)).props.onSubmit({ preventDefault() {} }); },
   };
 }
 
@@ -44,7 +44,7 @@ const profile = { name: 'Alex', role: 'engineer', seniority: 'principal', expert
 const saved = { ...profile, id: 'persistent-id' };
 async function connected(h, agents = []) {
   h.change('token', 'in-memory-test-session');
-  h.replies.push({ status: 200, body: agents }, { status: 200, body: [] });
+  h.replies.push({ status: 200, body: agents }, { status: 200, body: [] }, { status: 200, body: [] });
   await h.submit();
 }
 test('connect, create, save, edit provider/model without field loss, cancel', async () => {
@@ -74,14 +74,14 @@ test('failed saves retain draft, report auth/validation/missing/network errors a
     h.replies.push(reply); await h.submit(true);
     assert.equal(h.byId('agent-name').props.value, 'Retained draft');
     assert.ok(h.all().some(n => n.props.role === 'alert' && h.text(n).includes('Your unsaved profile')));
-    assert.equal(h.all().find(n => n.type === 'fieldset').props.disabled, false);
+    assert.equal(h.all().find(n => n.props.className === 'editor').props.children.flat(Infinity).find(n => n?.type === 'fieldset').props.disabled, false);
   }
   h.replies.push({ status: 200, body: { ...saved, name: 'Retained draft' } }); await h.submit(true);
   assert.ok(h.button('Edit Retained draft'));
 });
 test('failed load leaves creation disabled and reports connection error', async () => {
   const h = host(); h.change('token', 'wrong');
-  h.replies.push({ status: 401 }, { status: 401 }); await h.submit();
+  h.replies.push({ status: 401 }, { status: 401 }, { status: 401 }); await h.submit();
   assert.equal(h.button('Create agent').props.disabled, true);
   assert.ok(h.all().some(n => n.props.role === 'status' && h.text(n).includes('Connection denied')));
 });
@@ -90,7 +90,7 @@ test('save in progress disables the editor and connection until completion', asy
   const h = host(); await connected(h, [saved]); h.button('Edit Alex').props.onClick();
   let finish; h.replies.push(new Promise(resolve => { finish = resolve; }));
   const pending = h.submit(true);
-  assert.equal(h.all().find(n => n.type === 'fieldset').props.disabled, true);
+  assert.equal(h.all().find(n => n.props.className === 'editor').props.children.flat(Infinity).find(n => n?.type === 'fieldset').props.disabled, true);
   assert.equal(h.button('Connect').props.disabled, true);
   assert.ok(h.button('Saving…'));
   for (const field of Object.keys(profile)) {
@@ -98,4 +98,29 @@ test('save in progress disables the editor and connection until completion', asy
   }
   finish({ status: 200, body: saved }); await pending;
   assert.equal(h.button('Connect').props.disabled, false);
+});
+
+test('project registration, fresh selection, failure recovery and reconnect', async () => {
+  const h = host(); await connected(h);
+  assert.equal(h.byId('project-name').props.pattern, '.*\\S.*');
+  h.change('project-name', 'Local repo'); h.change('project-root', '/canonical/repo');
+  const project = { id: 'project-id', name: 'Local repo', root: '/canonical/repo' };
+  const submit = () => h.all().find(n => n.props.className === 'project-editor').props.onSubmit({ preventDefault() {} });
+  h.replies.push({ status: 422 }); await submit();
+  assert.equal(h.byId('project-root').props.value, '/canonical/repo');
+  h.replies.push({ status: 201, body: project }); await submit();
+  assert.equal(h.calls.at(-1).method, 'POST');
+  assert.deepEqual(JSON.parse(h.calls.at(-1).body), { name: 'Local repo', root: '/canonical/repo' });
+  assert.equal(h.byId('project-selection').props.value, 'project-id');
+  h.replies.push({ status: 409 });
+  await h.byId('project-selection').props.onChange({ target: { value: 'project-id' } });
+  // onChange deliberately does not return the promise; drain the async fetch.
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.byId('project-selection').props.value, '');
+  h.replies.push({ status: 200, body: project });
+  h.change('project-selection', 'project-id'); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.byId('project-selection').props.value, 'project-id');
+  assert.ok(h.calls.at(-1).url.endsWith('/projects/project-id'));
+  await connected(h);
+  assert.equal(h.byId('project-selection').props.value, '');
 });

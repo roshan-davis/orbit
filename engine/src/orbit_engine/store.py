@@ -2,7 +2,8 @@ from contextlib import contextmanager
 import sqlite3
 from pathlib import Path
 from uuid import uuid4
-from .models import Agent, AgentInput
+from .models import Agent, AgentInput, Project, ProjectInput
+from .projects import ProjectError, inspect_project
 
 class Store:
     def __init__(self, path: Path):
@@ -10,11 +11,21 @@ class Store:
         path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, 1):
+            if version not in (0, 1, 2):
                 raise RuntimeError("Unsupported database schema; refusing to overwrite")
             db.execute("PRAGMA journal_mode=WAL")
-            db.execute("CREATE TABLE IF NOT EXISTS agents (id TEXT PRIMARY KEY, profile TEXT NOT NULL)")
-            db.execute("PRAGMA user_version=1")
+            # Explicit BEGIN makes DDL and version advancement roll back together.
+            db.execute("BEGIN IMMEDIATE")
+            version = db.execute("PRAGMA user_version").fetchone()[0]
+            if version == 0:
+                db.execute("CREATE TABLE IF NOT EXISTS agents (id TEXT PRIMARY KEY, profile TEXT NOT NULL)")
+                db.execute("PRAGMA user_version=1")
+                version = 1
+            if version == 1:
+                db.execute("CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT NOT NULL, "
+                           "root TEXT NOT NULL UNIQUE, git_directory TEXT NOT NULL, "
+                           "common_directory TEXT NOT NULL)")
+                db.execute("PRAGMA user_version=2")
 
     @contextmanager
     def connect(self):
@@ -48,3 +59,39 @@ class Store:
             result = db.execute("UPDATE agents SET profile = ? WHERE id = ?",
                                 (agent.model_dump_json(), agent_id))
             return agent if result.rowcount else None
+
+    def list_projects(self) -> list[Project]:
+        with self.connect() as db:
+            rows = db.execute("SELECT id, name, root, git_directory, common_directory "
+                              "FROM projects ORDER BY rowid").fetchall()
+        return [self._project(row) for row in rows]
+
+    @staticmethod
+    def _project(row) -> Project:
+        return Project(**dict(zip(
+            ("id", "name", "root", "git_directory", "common_directory"), row)))
+
+    def create_project(self, profile: ProjectInput) -> Project:
+        inspected = inspect_project(profile.root)
+        project = Project(id=str(uuid4()), name=profile.name, root=str(inspected.root),
+                          git_directory=str(inspected.git_directory),
+                          common_directory=str(inspected.common_directory))
+        with self.connect() as db:
+            db.execute("INSERT INTO projects (id, name, root, git_directory, common_directory) "
+                       "VALUES (?, ?, ?, ?, ?)",
+                       (project.id, project.name, project.root, project.git_directory,
+                        project.common_directory))
+        return project
+
+    def get_project(self, project_id: str) -> Project | None:
+        with self.connect() as db:
+            row = db.execute("SELECT id, name, root, git_directory, common_directory "
+                             "FROM projects WHERE id = ?", (project_id,)).fetchone()
+        if row is None:
+            return None
+        project = self._project(row)
+        inspected = inspect_project(project.root)
+        if (str(inspected.git_directory), str(inspected.common_directory)) != (
+                project.git_directory, project.common_directory):
+            raise ProjectError("Registered checkout identity changed; inspect repository state")
+        return project
