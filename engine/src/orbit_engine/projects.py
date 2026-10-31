@@ -23,7 +23,7 @@ def canonical_directory(value: str | Path) -> Path:
 def git(root: Path, *args: str, missing_ok: bool = False) -> str:
     # Do not inherit Git routing/config injection from the hosting process.
     env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
-    env.update(GIT_TERMINAL_PROMPT='0', GIT_OPTIONAL_LOCKS='0')
+    env.update(GIT_TERMINAL_PROMPT='0', GIT_OPTIONAL_LOCKS='0', GIT_NO_LAZY_FETCH='1')
     try:
         result = subprocess.run(
             ['git', '-c', 'core.hooksPath=/dev/null', '-c', 'core.fsmonitor=false',
@@ -57,6 +57,11 @@ def inspect_project(root: str | Path) -> ProjectInspection:
     Status is porcelain v1 with NUL separators (including unusual filenames).
     """
     path = canonical_directory(root)
+    # Reject promisor configurations even on Git versions that do not support
+    # GIT_NO_LAZY_FETCH. Checkout must never hydrate objects from a remote.
+    if git(path, 'config', '--get-regexp',
+           r'^(extensions\.partialclone|remote\..*\.promisor)$', missing_ok=True):
+        raise ProjectError('Partial/promisor repositories are not supported; use a complete local clone')
     if git(path, 'rev-parse', '--is-inside-work-tree') != 'true':
         raise ProjectError('A non-bare Git checkout is required')
     if Path(git(path, 'rev-parse', '--show-toplevel')).resolve() != path:

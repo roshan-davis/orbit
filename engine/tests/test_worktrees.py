@@ -165,3 +165,26 @@ def test_hooks_disabled(repo, tmp_path):
     hook.chmod(0o755)
     create(repo, tmp_path)
     assert not marker.exists()
+
+
+def test_partial_clone_never_fetches(repo, tmp_path):
+    run(repo, 'config', 'uploadpack.allowFilter', 'true')
+    clone = tmp_path / 'partial'
+    subprocess.check_call(['git', 'clone', '--filter=blob:none', '--no-checkout',
+                           repo.as_uri(), str(clone)])
+    missing_before = run(clone, 'rev-list', '--objects', '--all', '--missing=print')
+    assert any(line.startswith('?') for line in missing_before.splitlines())
+    base = run(clone, 'rev-parse', 'HEAD')
+    with pytest.raises(ProjectError, match='Partial/promisor'):
+        create_task_worktree(clone, approved_parent=tmp_path, task_name='partial-task',
+                             branch='task/partial', base_sha=base)
+    assert run(clone, 'rev-list', '--objects', '--all', '--missing=print') == missing_before
+    assert not (tmp_path / 'partial-task').exists()
+    assert 'task/partial' not in run(clone, 'branch', '--list')
+
+
+@pytest.mark.parametrize('key', ['extensions.partialClone', 'remote.origin.promisor'])
+def test_promisor_config_rejected(repo, key):
+    run(repo, 'config', key, 'true')
+    with pytest.raises(ProjectError, match='Partial/promisor'):
+        inspect_project(repo)
