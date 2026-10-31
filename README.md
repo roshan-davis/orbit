@@ -47,4 +47,4 @@ npm run tauri build -- --no-bundle
 - [Claude/developer handoff](CONTRIBUTING.md)
 - [Setup verification](docs/setup-status.md)
 
-The user confirmed private `roshan-davis/orbit`. GitHub sign-in is still required; no remote is configured and nothing has been pushed. No license is chosen yet; the owner should choose one before public release.
+Repository: [roshan-davis/orbit](https://github.com/roshan-davis/orbit). It is public: anyone can read or clone it and propose a pull request; only authorized collaborators can push or merge. Develop changes in a separate Git worktree. No license is chosen yet; the owner should choose one before public release.

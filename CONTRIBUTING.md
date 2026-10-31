@@ -2,7 +2,7 @@
 
 Start with README, requirements, architecture, and the phased roadmap. Claude joins after this foundation; both Claude and Codex use the same project rules. No provider owns a fixed role.
 
-Create a focused branch (for example `feat/provider-discovery`) and an isolated Git worktree for concurrent implementations. Coordinate ownership of shared files. Keep the main checkout clean. Document acceptance criteria and validation in each change; request independent peer review before merging. Do not merge or push without the user's authorization.
+Create a focused branch (for example `feat/provider-discovery`) and a separate Git worktree before editing tracked files. The owner prefers this workflow for all changes, including solo work. Coordinate ownership of shared files. Keep the main checkout clean. Document acceptance criteria and validation in each change; request independent peer review before merging. Do not merge or push without the user's authorization.
 
 Preserve the subscription-only cloud policy: no API keys, paid API fallback, copied OAuth credentials, or quota bypass. Provider CLIs own their sign-in. Do not assume a subscription supports every integration. Keep unavailable integrations explicitly disabled.
 
