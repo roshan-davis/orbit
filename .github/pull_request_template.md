@@ -12,6 +12,12 @@ Describe the concrete change and user-visible result.
 
 List actual commands/results and evidence; identify checks not run.
 
+## Reviewed Help impact
+
+- Relevant workflows, examples and limitations updated in `apps/desktop/src/help.tsx`:
+- Or “No help impact”, with a concrete internal-only reason:
+- Reviewer checked guidance against the final behavior:
+
 ## Limits
 
 Known limitations, risks and remaining work:

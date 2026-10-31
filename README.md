@@ -11,6 +11,7 @@ files and an existing external worktree parent, then start and refresh logs/diff
 Cancellation and restart interruption retain isolated worktrees without automatic
 retry. Cloud execution, scheduling and skill publishing remain planned. Engine
 startup/token entry are manual; packaged sidecar supervision is not implemented.
+Open **Help** in the app for the current step-by-step guide, examples and limitations; it is available without an engine connection.
 See [ORB-007 evidence and limits](docs/work-items/ORB-007.md) before using the preview.
 
 ## Develop

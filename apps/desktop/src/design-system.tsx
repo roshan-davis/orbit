@@ -1,7 +1,8 @@
 import React from 'react';
 
-export type IconName = 'orbit' | 'missions' | 'agents' | 'providers' | 'workspace' | 'plus' | 'arrow' | 'sun' | 'moon' | 'refresh';
+export type IconName = 'orbit' | 'missions' | 'agents' | 'providers' | 'workspace' | 'plus' | 'arrow' | 'sun' | 'moon' | 'refresh' | 'help';
 const paths: Record<IconName, React.ReactNode> = {
+  help: <><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1 .6-1.5 1-1.5 2M12 16h.01" /></>,
   orbit: <><circle cx="12" cy="12" r="3" /><ellipse cx="12" cy="12" rx="10" ry="5" transform="rotate(-35 12 12)" /><circle cx="19" cy="6" r="1.6" fill="currentColor" stroke="none" /></>,
   missions: <><rect x="4" y="4" width="16" height="16" rx="4" /><path d="m8 12 3 3 5-6" /></>,
   agents: <><circle cx="9" cy="8" r="3" /><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6m3 9v-2a6 6 0 0 0-3-5" /></>,

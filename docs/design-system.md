@@ -84,3 +84,12 @@ a separate note and explicit checkbox and never merges or pushes Git.
 
 No Emergency Stop, persona testing, identity forking, DAG editor, automatic testing
 or telemetry is implied. Model inventory alone is not execution readiness.
+
+## Help guide
+
+`apps/desktop/src/help.tsx` owns current workflow guidance and examples; `help.css`
+uses the existing semantic tokens. Help remains available offline and while other
+requests are pending. Search filters complete topics, including disclosed detail
+text. Native topic links, ordered workflow text and disclosures provide keyboard
+and assistive-technology equivalents to the building blocks and visual flow.
+Update affected guidance in the same PR as user-facing behavior (see AGENTS.md).

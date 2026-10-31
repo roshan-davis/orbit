@@ -8,7 +8,7 @@ import ts from 'typescript';
 
 function host() {
   const states = []; let cursor = 0; let App; const calls = []; const replies = [];
-  const react = { createElement: (type, props, ...children) => ({ type, props: { ...props, children: children.length ? children : (props?.children ?? []) } }),
+  const react = { isValidElement: node => !!node && typeof node === 'object' && 'type' in node, createElement: (type, props, ...children) => ({ type, props: { ...props, children: children.length ? children : (props?.children ?? []) } }),
     useState(initial) { const i = cursor++; if (!(i in states)) states[i] = initial;
       return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; } };
   const context = { Error, window: { scrollTo() {} }, document: { getElementById: () => ({}) }, AbortSignal, fetch: async (url, options) => {
@@ -26,7 +26,8 @@ function host() {
   }
   const agents = load('../src/agents.ts', {});
   const design = load('../src/design-system.tsx', { react });
-  load('../src/main.tsx', { react, './agents': agents, './design-system': design, './styles.css': {},
+  const help = load('../src/help.tsx', { react, './design-system': design, './help.css': {} });
+  load('../src/main.tsx', { react, './agents': agents, './design-system': design, './help': help, './styles.css': {},
     'react-dom/client': { createRoot: () => ({ render: node => { App = node.props.children[0].type; } }) } });
   function render() { cursor = 0; return App(); }
   function nodes(node) { if (node && typeof node === 'object' && typeof node.type === 'function') return nodes(node.type(node.props)); return Array.isArray(node) ? node.flatMap(nodes) : node && typeof node === 'object' ? [node, ...nodes(node.props.children)] : []; }
