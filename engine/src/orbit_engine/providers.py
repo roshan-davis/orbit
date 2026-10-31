@@ -1,4 +1,4 @@
-"""Provider declarations with bounded local discovery; execution stays disabled."""
+"""Provider declarations with bounded local discovery; readiness is verified separately for every local run."""
 from .models import Provider
 from .ollama import discover
 
@@ -6,7 +6,7 @@ PROVIDERS: tuple[Provider, ...] = ("claude-code", "codex-cli", "gemini-cli", "ol
 
 def declarations():
     providers = [
-        {"id": provider, "execution_enabled": False,
+        {"id": provider, "execution_enabled": provider == "ollama",
          "auth": "local" if provider == "ollama" else "unknown",
          "energy": {"kind": "compute" if provider == "ollama" else "shared-quota",
                     "remaining_percent": None, "status": "unknown"},
@@ -14,5 +14,6 @@ def declarations():
         for provider in PROVIDERS
     ]
 
+    providers[-1]["execution_policy"] = "explicit-file-grants-and-local-GGUF-preflight"
     providers[-1]["discovery"] = discover()
     return providers

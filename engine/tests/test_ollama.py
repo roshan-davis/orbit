@@ -149,7 +149,7 @@ def test_provider_api_preserves_cloud_invariants(server, tmp_path):
     assert isinstance(declarations, list)
     assert [p["id"] for p in declarations] == list(providers.PROVIDERS)
     for provider in declarations:
-        assert provider["execution_enabled"] is False
+        assert provider["execution_enabled"] is (provider["id"] == "ollama")
         assert provider["paid_api_fallback"] is False
         assert provider["energy"]["remaining_percent"] is None
         assert provider["energy"]["status"] == "unknown"

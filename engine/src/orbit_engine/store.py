@@ -6,6 +6,7 @@ from .models import Agent, AgentInput, Project, ProjectInput
 from .projects import ProjectError, inspect_project
 
 from .tasks import TaskStore, migrate_tasks
+from .runs import migrate_runs
 
 class Store(TaskStore):
     def __init__(self, path: Path):
@@ -13,13 +14,13 @@ class Store(TaskStore):
         path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, 1, 2, 3):
+            if version not in (0, 1, 2, 3, 4):
                 raise RuntimeError("Unsupported database schema; refusing to overwrite")
             db.execute("PRAGMA journal_mode=WAL")
             # Explicit BEGIN makes DDL and version advancement roll back together.
             db.execute("BEGIN IMMEDIATE")
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, 1, 2, 3):
+            if version not in (0, 1, 2, 3, 4):
                 raise RuntimeError("Unsupported database schema; refusing to overwrite")
             if version == 0:
                 db.execute("CREATE TABLE IF NOT EXISTS agents (id TEXT PRIMARY KEY, profile TEXT NOT NULL)")
@@ -33,6 +34,9 @@ class Store(TaskStore):
                 version = 2
             if version == 2:
                 migrate_tasks(db)
+                version = 3
+            if version == 3:
+                migrate_runs(db)
 
     @contextmanager
     def connect(self):

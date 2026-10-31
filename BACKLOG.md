@@ -12,7 +12,7 @@ Status: **approved** = authorized bounded scope; **in progress** = work launched
 | ORB-004 | [Local-only Ollama discovery](docs/work-items/ORB-004.md), separate PR chat; providers.py plus new modules/tests | Complete (PR #2 merged; independent review approved) | None | R06, R07 | Installed-model discovery and unavailable/error states tested; bounded loopback discovery, no pull or cloud calls; capabilities remain honest. |
 | ORB-005 | [Project registry persistence/API](docs/work-items/ORB-005.md), [PR #6](https://github.com/roshan-davis/orbit/pull/6) | Complete (PR #6 merged; independent review approved) | ORB-003, ORB-002 | R01, R02, R08 | Transactional migration and persistence/API tests; validated roots use safe services; restart preserves registrations; no main mutation. |
 | ORB-006 | [Task/assignment schema and state machine](docs/work-items/ORB-006.md), [PR #7](https://github.com/roshan-davis/orbit/pull/7) | Complete (validated; independently reviewed; merge authorized; see PR #7 for integration state) | ORB-005 | R03–R05, R08 | Assignment snapshots, atomic legal transitions, dependency gates and audit events tested; invalid transitions rejected. |
-| ORB-007 | [Local execution, logs and cancellation](docs/work-items/ORB-007.md), evidence file pending | Planned | ORB-004, ORB-006 | R05, R07, R08, R15 | Temporary-repo local task produces reviewable diff; bounded logs, cancellation and failure/restart behavior tested without duplicate execution or main mutation. |
+| ORB-007 | [Local execution, logs and cancellation](docs/work-items/ORB-007.md) | In progress (local smoke passed; independent review pending) | ORB-004, ORB-006 | R05, R07, R08, R15 | Temporary-repo local task produces reviewable diff; bounded logs, cancellation and failure/restart behavior tested without duplicate execution or main mutation. |
 
 ```mermaid
 flowchart LR
@@ -24,4 +24,4 @@ flowchart LR
   ORB001[ORB-001 Rules: cross-cutting workflow]
 ```
 
-ORB-001 does not block the already authorized ORB-002–004 work. ORB-005 is authorized and in progress; ORB-006–007 remain planned in this index. Phase 1 remains gated on the full safe local mission, not isolated feature PRs. Later subscription CLI support, orchestration, energy, skills, distribution, private remote access and design integrations remain [roadmap phases 2–8](docs/roadmap.md); no new implementation chats are authorized by this index.
+ORB-001 does not block the already authorized ORB-002–004 work. ORB-005 and ORB-006 are merged; ORB-007 is in progress with validation evidence in its work item. Phase 1 remains gated on the full safe local mission, not isolated feature PRs. Later subscription CLI support, orchestration, energy, skills, distribution, private remote access and design integrations remain [roadmap phases 2–8](docs/roadmap.md); no new implementation chats are authorized by this index.

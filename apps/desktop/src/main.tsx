@@ -11,7 +11,44 @@ type Task = { id: string; title: string; acceptance: string; state: string; vers
   dependencies: string[]; assignments: { id: string; agent_id: string; snapshot: Agent }[];
   events: { sequence: number; kind: string; data: { note?: string; to?: string }; created_at: string }[] };
 
+type Run = { id: string; status: string; path: string; branch: string; base_sha: string;
+  files: string[]; logs: string[]; diff: string; model: string };
+
 function App() {
+  const [runs, setRuns] = useState<Record<string, Run[]>>({});
+  const [runParent, setRunParent] = useState('');
+  const [runFiles, setRunFiles] = useState('');
+  const [runGrant, setRunGrant] = useState(false);
+  const [reviewNote, setReviewNote] = useState('');
+  const [approveCompletion, setApproveCompletion] = useState(false);
+  async function runAction(task: Task, action: 'start' | 'refresh' | 'cancel') {
+    setTaskBusy(true); setTaskError('');
+    try {
+      const path = `/tasks/${encodeURIComponent(task.id)}/runs`;
+      const result = await request<Run[]>(session, path + (action === 'cancel' ? '/cancel' : ''),
+        action === 'start' ? { expected_version: task.version, approved_parent: runParent,
+          files: runFiles.split('\n').map(v => v.trim()).filter(Boolean), grant_file_access: runGrant } :
+          action === 'cancel' ? { run_id: runs[task.id]?.slice(-1)[0]?.id ?? '' } : undefined);
+      setRuns(current => ({ ...current, [task.id]: result }));
+      const updated = await request<Task>(session, `/tasks/${encodeURIComponent(task.id)}`);
+      setTasks(current => current.map(t => t.id === updated.id ? updated : t)); setDetail(task.id);
+      if (action === 'start') setRunGrant(false);
+    } catch (error) { setTaskError(error instanceof Error ? error.message : 'Run action failed. Refresh to check the recorded outcome.'); }
+    finally { setTaskBusy(false); }
+  }
+  async function recordReview(task: Task, approval = false) {
+    setTaskBusy(true); setTaskError('');
+    try {
+      const updated = await request<Task>(session, `/tasks/${encodeURIComponent(task.id)}/transitions`, {
+        expected_version: task.version, state: approval ? 'completed' : 'awaiting_approval', note: reviewNote,
+        ...(approval ? { human_approval: approveCompletion } : { reviewer_id: taskAgent }),
+      });
+      setTasks(current => current.map(t => t.id === updated.id ? updated : t));
+      setReviewNote(''); setApproveCompletion(false);
+    } catch (error) { setTaskError(error instanceof Error ? error.message : 'Review action failed.'); }
+    finally { setTaskBusy(false); }
+  }
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [taskTitle, setTaskTitle] = useState('');
   const [acceptance, setAcceptance] = useState('');
@@ -31,6 +68,7 @@ function App() {
     finally { setTaskBusy(false); }
   }
   function clearTasks() {
+    setRuns({}); setRunGrant(false); setApproveCompletion(false); setReviewNote('');
     setTasks([]); setTaskLoaded(false); setDetail(null); setDependencies([]); setTaskError('');
     setTaskTitle(''); setAcceptance(''); setTaskAgent('');
   }
@@ -116,7 +154,7 @@ function App() {
       const [nextAgents, nextProviders, nextProjects] = await Promise.all([
         request<Agent[]>(token, '/agents'), request<Provider[]>(token, '/providers'), request<Project[]>(token, '/projects')]);
       setProjects(nextProjects); setAgents(nextAgents); setProviders(nextProviders); setSession(token);
-      setStatus('Connected to the local engine. Provider execution is not enabled in this foundation.');
+      setStatus('Connected to the local engine. Local file runs are available for explicitly granted files and verified installed Ollama models.');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Engine unavailable.');
     } finally { setBusy(false); }
@@ -148,7 +186,7 @@ function App() {
         </fieldset>
       </form>
       {projectError && <p role="alert">{projectError} Registration entries are retained for retry.</p>}
-      <p>Selection lasts for this connection. Registration persists across restarts. Load tasks below after selecting a project. Execution is not enabled yet.</p>
+      <p>Selection lasts for this connection. Registration persists across restarts. Load tasks below after selecting a project. Run permissions are granted separately below.</p>
     </section>
     <section aria-labelledby="tasks"><h2 id="tasks">Tasks and assignments</h2>
       <p>Choose a project, then load its tasks. Assignments preserve the agent configuration at assignment time.</p>
@@ -169,27 +207,60 @@ function App() {
         <label htmlFor="task-agent">Agent for next assignment<select id="task-agent" value={taskAgent} disabled={taskBusy} onChange={e => setTaskAgent(e.target.value)}>
           <option value="">Choose a configured agent</option>{agents.map(a => <option key={a.id} value={a.id}>{a.name} — {a.role}</option>)}
         </select></label>
+        <fieldset disabled={taskBusy}><legend>Local file run permissions — for the next Start action</legend>
+          <label htmlFor="run-parent">Existing canonical worktree parent outside your project<input id="run-parent" value={runParent}
+            placeholder="/Users/you/OrbitWorktrees" onChange={e => { setRunParent(e.target.value); setRunGrant(false); }} /></label>
+          <label htmlFor="run-files">Granted relative text files — one per line<textarea id="run-files" value={runFiles}
+            placeholder="src/example.py" onChange={e => { setRunFiles(e.target.value); setRunGrant(false); }} /></label>
+          <label htmlFor="run-grant"><input id="run-grant" type="checkbox" checked={runGrant}
+            onChange={e => setRunGrant(e.target.checked)} />I approve sending these files from the recorded commit to the local model and editing them in a new isolated worktree.</label>
+          <p>At most 16 UTF-8 files, 64 KiB combined context. Existing parent directories only. Hidden files, secrets, symlinks and commands are blocked.
+            Uncommitted project changes are preserved and are not included. Inference can take up to two minutes; refresh to see progress.</p>
+        </fieldset>
         {tasks.length === 0 && <p>No tasks yet.</p>}
         {tasks.map(task => <article key={task.id}><h3>{task.title}</h3><p>State: {task.state} · revision {task.version}</p>
           <button type="button" disabled={taskBusy} onClick={() => setDetail(task.id)}>View {task.title}</button>
           {task.state === 'queued' && <button type="button" disabled={taskBusy} onClick={() => { void taskAction(task); }}>Mark {task.title} ready</button>}
           {task.state === 'ready' && <button type="button" disabled={taskBusy || !taskAgent} onClick={() => { void taskAction(task, true); }}>Assign {task.title}</button>}
+          {task.state === 'assigned' && <button type="button" disabled={taskBusy || !runGrant || !runParent || !runFiles.trim()}
+            onClick={() => { void runAction(task, 'start'); }}>Start {task.title} locally</button>}
+          {task.assignments.length > 0 && <button type="button" disabled={taskBusy}
+            onClick={() => { void runAction(task, 'refresh'); }}>Refresh {task.title} run and diff</button>}
+          {task.state === 'running' && <button type="button" disabled={taskBusy || !runs[task.id]?.length}
+            onClick={() => { void runAction(task, 'cancel'); }}>Cancel {task.title} run</button>}
           {detail === task.id && <div><h4>Acceptance criteria</h4><p style={{ whiteSpace: 'pre-wrap' }}>{task.acceptance}</p>
             <p>Dependencies: {task.dependencies.length ? task.dependencies.map(id => tasks.find(t => t.id === id)?.title ?? id).join(', ') : 'None'}</p>
             <h4>Assignment history</h4>{task.assignments.length === 0 && <p>Unassigned.</p>}
             {task.assignments.map(a => <p key={a.id}>{a.snapshot.name} · {a.snapshot.role} · {a.snapshot.provider}/{a.snapshot.model} (saved configuration)</p>)}
+            {(runs[task.id] ?? []).map(run => <section key={run.id} aria-label="Local run evidence">
+              <h4>Local run: {run.status}</h4><p>{run.model} · {run.branch}</p><p>Retained worktree: {run.path}</p>
+              <p>Base commit: {run.base_sha}</p><ol>{run.logs.map((line, i) => <li key={i}>{line}</li>)}</ol>
+              <h4>Stored generated diff</h4><pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{run.diff || 'No successful diff recorded. Inspect retained worktree after failure or cancellation.'}</pre>
+              <p>This is the recorded run output. Tests and independent review are manual. Later worktree edits are not included in this snapshot.</p>
+            </section>)}
+            {['awaiting_review', 'awaiting_approval'].includes(task.state) && <fieldset disabled={taskBusy}>
+              <legend>Record review evidence — never merges Git</legend>
+              <label htmlFor={`review-note-${task.id}`}>Review or approval evidence<textarea id={`review-note-${task.id}`} value={reviewNote}
+                onChange={e => setReviewNote(e.target.value)} maxLength={4000} /></label>
+              {task.state === 'awaiting_review' && <button type="button" disabled={!reviewNote.trim() || !taskAgent || task.assignments.some(a => a.agent_id === taskAgent)}
+                onClick={() => { void recordReview(task); }}>Record completed independent review for {task.title}</button>}
+              {task.state === 'awaiting_approval' && <><label><input type="checkbox" checked={approveCompletion}
+                onChange={e => setApproveCompletion(e.target.checked)} />I explicitly approve task completion after reviewing its evidence. This does not merge its branch.</label>
+                <button type="button" disabled={!approveCompletion || !reviewNote.trim()} onClick={() => { void recordReview(task, true); }}>Approve completion of {task.title}</button></>}
+              <p>Use the agent selector for the distinct reviewer who actually performed the review. Recording an assertion does not run a reviewer.</p>
+            </fieldset>}
             <h4>Audit history</h4><ol>{task.events.map(event => <li key={event.sequence}>{event.kind}{event.data.to ? ` → ${event.data.to}` : ''} · {event.created_at}{event.data.note ? ` · ${event.data.note}` : ''}</li>)}</ol>
           </div>}
         </article>)}
       </>}
-      <p>Execution, live cancellation, diff review and merge controls are planned. Assigning a task does not run a model or grant tools.</p>
+      <p>Assigning a task does not run a model or grant tools. Start explicitly grants only listed files. Cloud execution and Git merges are unavailable.</p>
     </section>
     <section aria-labelledby="energy"><h2 id="energy">Team energy</h2>
       <p>Shared provider pools appear once. Local compute is tracked separately.</p>
       {providers.length === 0 ? <p className="empty">Connect to view provider declarations. No live quota data is available.</p> :
         <div className="grid">{providers.map(p => <article key={p.id}><h3>{p.id}</h3>
           <strong>Unknown</strong><p>{p.energy.kind === 'compute' ? 'Local compute' : 'Shared subscription pool'}</p>
-          <small>Telemetry not connected · execution disabled</small></article>)}</div>}
+          <small>Telemetry unknown · local runs require separate verification and file grants</small></article>)}</div>}
     </section>
     <section aria-labelledby="agents"><h2 id="agents">Persistent agents <span className="count">{agents.length}</span></h2>
       <button type="button" disabled={!session || busy || saving || editor !== null} onClick={() => openEditor()}>Create agent</button>

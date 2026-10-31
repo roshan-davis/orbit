@@ -179,3 +179,42 @@ test('task errors retain draft, refresh clears stale data, project change clears
   assert.equal(h.button('View Check parser'), undefined);
   assert.equal(h.byId('task-title'), undefined);
 });
+
+test('explicit file run grant, refresh diff, cancellation and failure recovery', async () => {
+  const h = host(); await withProject(h);
+  const assigned = { ...task, state: 'assigned', version: 2, assignments: [{ id: 'a', agent_id: saved.id, snapshot: saved }] };
+  h.replies.push({ status: 200, body: [assigned] });
+  h.button('Refresh tasks').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.button('Start Check parser locally').props.disabled, true);
+  h.change('run-parent', '/canonical/worktrees'); h.change('run-files', 'src/parser.py');
+  h.byId('run-grant').props.onChange({ target: { checked: true } });
+  assert.equal(h.button('Start Check parser locally').props.disabled, false);
+  h.replies.push({ status: 409 });
+  h.button('Start Check parser locally').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.byId('run-files').props.value, 'src/parser.py');
+  assert.equal(h.byId('run-grant').props.checked, true);
+  const run = { id: 'r', status: 'running', path: '/canonical/worktrees/run-r', branch: 'orbit/run-r',
+    base_sha: 'a'.repeat(40), model: 'local', files: ['src/parser.py'], logs: ['Run claimed.'], diff: '' };
+  const running = { ...assigned, state: 'running', version: 3 };
+  h.replies.push({ status: 202, body: [run] }, { status: 200, body: running });
+  h.button('Start Check parser locally').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  const start = h.calls.at(-2);
+  assert.deepEqual(JSON.parse(start.body), { expected_version: 2, approved_parent: '/canonical/worktrees', files: ['src/parser.py'], grant_file_access: true });
+  assert.equal(h.byId('run-grant').props.checked, false);
+  assert.ok(h.button('Cancel Check parser run'));
+  h.replies.push({ status: 200, body: [{ ...run, logs: ['Cancellation requested.'] }] }, { status: 200, body: running });
+  h.button('Cancel Check parser run').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.ok(h.calls.at(-2).url.endsWith('/runs/cancel'));
+  assert.equal(h.calls.at(-2).method, 'POST');
+  h.replies.push({ status: 200, body: [{ ...run, status: 'cancelled' }] }, { status: 200, body: { ...running, state: 'cancelled', version: 4 } });
+  h.button('Refresh Check parser run and diff').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.button('Cancel Check parser run'), undefined);
+  // Stored diff is rendered as plain text, including markup supplied in a file.
+  h.replies.push({ status: 200, body: [{ ...run, status: 'awaiting_review', diff: '+<script>literal file content</script>' }] },
+    { status: 200, body: { ...running, state: 'awaiting_review', version: 4 } });
+  h.button('Refresh Check parser run and diff').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.ok(h.all().some(n => n.type === 'pre' && h.text(n).includes('<script>literal')));
+  assert.equal(h.button('Record completed independent review for Check parser').props.disabled, true);
+  h.change('project-selection', '');
+  assert.equal(h.button('Refresh Check parser run and diff'), undefined);
+});

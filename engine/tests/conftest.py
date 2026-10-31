@@ -1,6 +1,6 @@
 """Provider API tests never require or contact a live local model server."""
 import pytest
-from orbit_engine import ollama
+from orbit_engine import ollama, local_model
 
 
 @pytest.fixture(autouse=True)
@@ -16,3 +16,4 @@ def offline_ollama_by_default(monkeypatch):
             pass
 
     monkeypatch.setattr(ollama, "_LocalConnection", OfflineConnection)
+    monkeypatch.setattr(local_model, "_LocalConnection", OfflineConnection)
