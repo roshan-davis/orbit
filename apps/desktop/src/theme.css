@@ -1,0 +1,25 @@
+/* Orbit theme contract: all product colors, type, space and surfaces use these tokens. */
+.app-shell {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --canvas: #101715; --rail: #0c120f; --surface: #17201c; --surface-raised: #1c2822;
+  --surface-hover: #233129; --field: #121c16; --line: #2b3b31; --line-strong: #4a6353;
+  --text: #edf3ec; --text-secondary: #b6c5b7; --text-muted: #8fA492;
+  --accent: #b5e5a4; --accent-hover: #c9efbc; --on-accent: #182b16;
+  --accent-soft: #273e28; --attention: #efd291; --attention-bg: #393222;
+  --error: #ffb8ac; --error-bg: #382520; --shadow: 0 12px 36px #00000018;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
+  --radius-sm: 7px; --radius-md: 12px; --radius-lg: 18px;
+  --type-xs: 11px; --type-sm: 13px; --type-body: 14px; --type-heading: 21px;
+  color-scheme: dark;
+}
+.app-shell[data-theme='light'] {
+  --canvas: #f4f6f1; --rail: #e9eee5; --surface: #ffffff; --surface-raised: #f0f4ec;
+  --surface-hover: #e6eede; --field: #fbfcf9; --line: #d8e0d2; --line-strong: #8b9f87;
+  --text: #1d3022; --text-secondary: #4b6250; --text-muted: #60775f;
+  --accent: #315e30; --accent-hover: #244e25; --on-accent: #ffffff;
+  --accent-soft: #dfeeda; --attention: #79551c; --attention-bg: #fff2d4;
+  --error: #a5382b; --error-bg: #fff0eb; --shadow: 0 12px 36px #20302008;
+  color-scheme: light;
+}

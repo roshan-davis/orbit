@@ -192,7 +192,7 @@ def test_migration_v2_preserves_data_and_rolls_back_failure(tmp_path):
         assert store.list_agents()[0].id == 'a'
         assert store.list_projects()[0].id == 'p'
     with store.connect() as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0] == 3
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 4
 
 def test_task_api_auth_validation_and_worker_boundary(setup):
     store, author, _ = setup

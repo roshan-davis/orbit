@@ -36,7 +36,7 @@ def test_provider_declarations_do_not_invent_readiness_or_quota(tmp_path):
         providers = client.get("/v1/providers", headers=HEADERS).json()
         assert len(providers) == 4
         for provider in providers:
-            assert provider["execution_enabled"] is False
+            assert provider["execution_enabled"] is (provider["id"] == "ollama")
             assert provider["paid_api_fallback"] is False
             assert provider["energy"]["remaining_percent"] is None
         assert providers[-1]["energy"]["kind"] == "compute"
@@ -80,7 +80,7 @@ def test_edit_preserves_identity_and_all_fields_across_restart(tmp_path):
     with TestClient(create_app(path, TOKEN)) as client:
         assert client.get('/v1/agents', headers=HEADERS).json() == [expected]
     with sqlite3.connect(path) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0] == 3
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 4
 
 
 def test_retrieve_update_boundaries_and_defaults(tmp_path):

@@ -67,7 +67,7 @@ def test_v1_migration_retains_profiles_and_is_idempotent(tmp_path):
         assert store.list_agents()[0].id == 'legacy'
         assert store.list_projects() == []
     with sqlite3.connect(path) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0] == 3
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 4
 
 
 def test_migration_failure_rolls_back_version_and_ddl(tmp_path):

@@ -28,6 +28,8 @@ Source: user setup brief and the available October 31, 2026 conversation, “Mul
 Observer starts with periodic analysis of completed tasks, not continuous expensive monitoring. Require repeated-use evidence, clear triggers, examples, reproducible tests and baseline comparisons. Classify each candidate as reusable skill, knowledge, or deterministic automation. Reviewer checks quality, permissions, portability and usefulness. Track published skill success, regressions, overhead, usage and provider compatibility. Keep immutable versions, an active-version pointer and a disable/rollback path; never uncontrolled self-modification.
 
 ## UX and operational quality
+
+Use the project [design system and component library](design-system.md): semantic theme tokens, consistent controls and status treatments, clear navigation, focused list/detail workspaces and progressive disclosure. Support dark/light themes and smaller windows. Put the user’s current mission and next action ahead of setup; avoid presenting every form and evidence section as one long stacked page.
 Show missions, team assignments, diffs, approvals, provider readiness, agent energy references and independent pool dashboards. Provide accessible labels, keyboard interaction and readable states. Unknown quota must never look full or depleted. Surface blocked authentication, crashes, cancellation and stale observations. Store locally by default; no telemetry upload. Never persist tokens in prompts/logs. Support restart recovery with no duplicate task execution. Initial target is local macOS development; other desktop packaging follows validation.
 
 ## Foundation boundary

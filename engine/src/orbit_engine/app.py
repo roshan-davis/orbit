@@ -10,6 +10,7 @@ from .models import Agent, AgentInput, Project, ProjectInput
 from .projects import ProjectError
 from .providers import declarations
 from .store import Store
+from .runs import Runner, RunInput, CancelInput
 from .tasks import TaskError, TaskInput, AssignmentInput, TransitionInput
 from fastapi.responses import JSONResponse
 
@@ -23,7 +24,11 @@ def create_app(db_path: Path | None = None, token: str | None = None) -> FastAPI
         if len(configured_token) < 24 or configured_token == "replace-with-a-random-session-token":
             raise RuntimeError("Set ORBIT_TOKEN to a private random token of at least 24 characters")
         app.state.store = Store(path)
-        yield
+        app.state.runner = Runner(app.state.store)
+        try:
+            yield
+        finally:
+            app.state.runner.close()
 
     app = FastAPI(title="Orbit Engine", version="0.1.0", lifespan=lifespan)
     app.add_middleware(CORSMiddleware,
@@ -108,6 +113,21 @@ def create_app(db_path: Path | None = None, token: str | None = None) -> FastAPI
     @app.post("/v1/tasks/{task_id}/transitions", dependencies=[Depends(authorize)])
     def transition_task(task_id: str, profile: TransitionInput):
         return app.state.store.transition_task(task_id, profile)
+
+    @app.get("/v1/tasks/{task_id}/runs", dependencies=[Depends(authorize)])
+    def get_runs(task_id: str):
+        return app.state.runner.get(task_id)
+
+    @app.post("/v1/tasks/{task_id}/runs", status_code=202, dependencies=[Depends(authorize)])
+    def start_run(task_id: str, profile: RunInput):
+        try:
+            return app.state.runner.start(task_id, profile)
+        except ProjectError as exc:
+            raise TaskError('Project or worktree parent unavailable; verify canonical paths') from exc
+
+    @app.post("/v1/tasks/{task_id}/runs/cancel", dependencies=[Depends(authorize)])
+    def cancel_run(task_id: str, profile: CancelInput):
+        return app.state.runner.cancel(task_id, profile.run_id)
 
     @app.get("/v1/providers", dependencies=[Depends(authorize)])
     def providers():
