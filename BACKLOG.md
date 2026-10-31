@@ -15,7 +15,7 @@ Status: **approved** = authorized bounded scope; **in progress** = work launched
 | ORB-007 | [Local execution, logs and cancellation](docs/work-items/ORB-007.md) | In progress (local smoke passed; independent review pending) | ORB-004, ORB-006 | R05, R07, R08, R15 | Temporary-repo local task produces reviewable diff; bounded logs, cancellation and failure/restart behavior tested without duplicate execution or main mutation. |
 | ORB-008 | [Lavender UX and simplified mission flows](docs/work-items/ORB-008.md), [PR #9](https://github.com/roshan-davis/orbit/pull/9) | Implemented; independent review pending | ORB-007 | R01–R08 | Existing workflows preserved, honest states, both themes/narrow windows, interaction/build/native evidence. |
 
-| ORB-009 | [In-app Help and visual workflows](docs/work-items/ORB-009.md) | In progress | ORB-008 | R01–R08, R10–R12 | Offline guide, accurate examples/limits, accessible visual flow, both themes/narrow/keyboard evidence and durable Help-impact review rule. |
+| ORB-009 | [In-app Help and visual workflows](docs/work-items/ORB-009.md), [PR #10](https://github.com/roshan-davis/orbit/pull/10) | Implemented; independent review pending | ORB-008 | R01–R08, R10–R12 | Offline guide, accurate examples/limits, accessible visual flow, both themes/narrow/keyboard evidence and durable Help-impact review rule. |
 
 ```mermaid
 flowchart LR

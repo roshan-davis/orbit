@@ -296,3 +296,33 @@ test('review rejection requires a distinct reviewer, revision reassigns, complet
   assert.deepEqual(JSON.parse(h.calls.at(-1).body), { expected_version: 6, state: 'completed', note: 'Acceptance evidence inspected.', human_approval: true });
   assert.ok(h.calls.every(call => !/merge|push/.test(call.url)));
 });
+
+test('offline Help search includes disclosed limits, recovers from no match and makes no requests', () => {
+  const h = host();
+  h.button('Help').props.onClick();
+  assert.equal(h.all().find(n => n.props['aria-label'] === 'Orbit Help').props.hidden, false);
+  h.change('help-search', '65,536');
+  assert.ok(h.byId('help-permissions'));
+  assert.equal(h.byId('help-agents'), undefined);
+  h.change('help-search', 'no-such-help-topic');
+  assert.ok(h.all().some(n => n.type === 'h2' && h.text(n) === 'No matching topics'));
+  h.button('Clear search').props.onClick();
+  assert.ok(h.byId('help-agents'));
+  assert.equal(h.calls.length, 0);
+});
+
+test('Help remains available during a pending profile save without changing the draft or request', async () => {
+  const h = host(); await connected(h);
+  h.button('Create agent').props.onClick();
+  h.change('agent-name', 'Kept draft');
+  let release;
+  h.replies.push(new Promise(resolve => { release = resolve; }));
+  const pending = h.submit(true);
+  assert.equal(h.button('Help').props.disabled, false);
+  h.button('Help').props.onClick();
+  assert.equal(h.byId('agent-name').props.value, 'Kept draft');
+  assert.equal(h.calls.length, 4);
+  release({ status: 422 }); await pending;
+  assert.equal(h.byId('agent-name').props.value, 'Kept draft');
+  assert.equal(h.calls.length, 4);
+});
