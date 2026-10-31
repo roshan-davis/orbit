@@ -110,3 +110,29 @@ def test_cors_permits_only_required_methods(tmp_path):
                 'Origin': 'http://localhost:1420', 'Access-Control-Request-Method': method,
                 'Access-Control-Request-Headers': 'authorization,content-type'})
             assert response.status_code == (200 if method in ('GET', 'POST', 'PUT') else 400)
+
+
+def test_legacy_profile_remains_readable_and_can_be_repaired(tmp_path):
+    import json
+    import sqlite3
+    from orbit_engine.store import Store
+    path = tmp_path / "legacy.db"
+    Store(path)
+    legacy = {**PROFILE, "id": "legacy-id", "name": " ", "role": " ",
+              "seniority": "", "model": " ", "skills": ["review@v1"],
+              "tools": [], "instructions": "Preserve legacy instructions"}
+    with sqlite3.connect(path) as db:
+        db.execute("INSERT INTO agents VALUES (?, ?)", (legacy["id"], json.dumps(legacy)))
+    with TestClient(create_app(path, TOKEN)) as client:
+        listed = client.get('/v1/agents', headers=HEADERS)
+        assert listed.status_code == 200
+        assert listed.json()[0]['seniority'] == ''
+        assert listed.json()[0]['name'] == ' '
+        assert client.get('/v1/agents/legacy-id', headers=HEADERS).status_code == 200
+        assert client.put('/v1/agents/legacy-id', json=legacy, headers=HEADERS).status_code == 422
+        repaired = {**legacy, **PROFILE}
+        response = client.put('/v1/agents/legacy-id', json=repaired, headers=HEADERS)
+        assert response.status_code == 200
+        assert response.json() == {**repaired, "expertise": PROFILE['expertise']}
+    with TestClient(create_app(path, TOKEN)) as client:
+        assert client.get('/v1/agents/legacy-id', headers=HEADERS).json() == response.json()

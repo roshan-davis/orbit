@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field, field_validator
 
 Provider = Literal["claude-code", "codex-cli", "gemini-cli", "ollama"]
 
-class AgentInput(BaseModel):
+class AgentProfile(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     role: str = Field(min_length=1, max_length=120)
     seniority: str = "unspecified"
@@ -14,6 +14,7 @@ class AgentInput(BaseModel):
     provider: Provider
     model: str = Field(min_length=1)
 
+class AgentInput(AgentProfile):
     @field_validator("name", "role", "seniority", "model")
     @classmethod
     def meaningful_identity(cls, value: str) -> str:
@@ -22,5 +23,5 @@ class AgentInput(BaseModel):
             raise ValueError("Must contain non-whitespace characters")
         return value
 
-class Agent(AgentInput):
+class Agent(AgentProfile):
     id: str
