@@ -39,3 +39,90 @@ Pool identity includes provider + account + shared allowance, not agent ID. Each
 
 ## Later remote/design integrations
 Place a private authenticated gateway in front of engine commands; do not change bind address casually. Pair and revoke devices, encrypt transport, audit remote approvals and restrict privileges. No particular VPN or hosting vendor selected. Stitch and Claude design connectors import/export artifacts through capability-gated interfaces; availability and subscription terms remain discovery work.
+
+
+## Typed workspaces and action execution (planned contract)
+
+The following is a target architecture, not a description of the ORB-007 runner.
+That runner replaces explicitly granted UTF-8 files in Git worktrees; it has no
+general folder action registry or arbitrary document parser. Earlier sections
+with “planned” labels are baseline architecture sketches; canonical work-item
+records describe what has actually shipped (including ORB-007–009 local-run/UX/Help).
+
+A workspace has a stable identity, explicit kind (`git` or `folder`), canonical
+root, allowed input/output roots and a recorded boundary policy. Existing project
+registrations need an explicit transactional migration preserving identity and
+current Git behavior; classification must not silently initialize Git. Folder
+runs have no worktree/branch/merge prerequisite. Git operations remain behind the
+Git workspace capability. Neither worktree nor folder staging is an OS sandbox.
+
+An action definition is immutable by ID/version and records its implementation
+identity, supported workspace kinds/formats, typed input/output schemas, effect
+class, read/write/network permissions, validation/size/count limits, preview and
+acceptance support, timeout, cancellation, retry/idempotency and recovery contracts.
+The registry resolves only installed, approved handlers; schema-valid arguments
+alone never confer permission. Reject missing/unknown versions rather than silently
+substituting latest. Pass validated arguments to registered functions; model text
+is never a shell command. Network is absent unless separately declared and granted.
+
+A workflow definition pins action versions, step dependencies, typed input/output
+mappings, artifact declarations, acceptance checks and approval boundaries. Validate
+mapping compatibility and dependency cycles before admission. Snapshot definition
+digests, resolved inputs and grants into each run. Workflow edits affect new runs
+only. Registry/template availability is independent of future learned skills;
+R09 still gates learned/published versions and cannot expand runtime grants.
+
+```mermaid
+flowchart TD
+  Direct[Direct workflow selection + typed inputs] --> Validate
+  Intent[Installed local model: intent + entities] --> Clarify[Interpretation / clarification]
+  Clarify --> Validate[Engine: schemas + workspace + policy]
+  Validate --> Approval[Required exact-scope approval]
+  Approval --> Handler[Registered pinned action handler]
+  Handler --> Stage[Read-only result or staged output / preview]
+  Stage --> Apply[Approved apply with collision / version recheck]
+  Apply --> Evidence[Artifact checks + audit / recovery manifest]
+```
+
+Direct calls follow the same validation and policy path; read-only grants may
+permit execution without a new approval click. The diagram does not require an
+apply step for read-only work. Local intent resolution receives only permitted
+context and a bounded catalog, returning workflow ID/version and schema-shaped
+parameters, never executable code. Treat confidence as an uncalibrated signal;
+missing or conflicting required values prompt targeted questions. Unsupported
+requests explain the limit. Capability failure/unavailable routing leaves direct
+invocation usable. No native model tool support, download or cloud fallback is
+assumed. External files, retrieved content and model output are untrusted data;
+instructions embedded in them cannot change grants, select new privileges or
+bypass validation. Keep secrets out of prompts and routine logs; enforce path,
+symlink, file-kind and size/count policies in code at read and effect boundaries.
+
+For new artifacts, generate in an engine-owned staging area and show destination,
+format, size and collision policy before approved publication. Folder mutations
+add a concrete source-to-destination preview and recorded content/version evidence.
+Before every effect, recheck source/destination identity/version and containment;
+a changed source, occupied destination or invalidated grant blocks that effect
+and requests a new preview. Define supported concurrency assumptions explicitly;
+a precheck alone does not eliminate filesystem races. Never silently overwrite
+unrelated files. A retained recovery manifest records planned and actual effects,
+originals/backups where applicable, output checksums, completed/failed/unknown steps
+and safe recovery instructions. Manifest persistence ordering and crash windows
+must be specified and tested before folder writes ship. Multi-file apply is not
+assumed atomic; irreversible effects must be disclosed before approval.
+
+Run/step records hold exact versions, redacted validated inputs, scope/effect grants,
+approval identity/policy evidence, ordered progress, output references, checks and
+terminal/partial states. Cancellation stops future work according to each action's
+contract and reports effects already completed or still uncertain. Restart and
+retry reconcile manifest/filesystem evidence before re-execution; idempotency keys
+and action-specific reconciliation prevent duplicate effects. Never blindly retry
+writes, moves or network calls. Recovery is a separately scoped validated action,
+not permission to overwrite files changed since the run. Results show actual
+artifacts and validation, with actionable partial-failure guidance.
+
+Policy may allow bounded reads within an existing grant; consequential writes
+require a reviewed preview and any required approval. Destructive actions require
+explicit approval. Material changes to versions, resolved inputs, destinations or
+effects invalidate approval. Independent review for critical changes and explicit
+Git merge authorization remain separate from action approval or task completion.
+Cloud subscription-only adapters, quota evidence and scoped memory remain unchanged.

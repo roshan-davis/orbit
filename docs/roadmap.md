@@ -20,3 +20,28 @@
 5. Investigate CLI subscription preflight and fixtures one provider at a time; do not enable execution from a binary-presence check alone.
 
 Keep each task on a focused branch with explicit acceptance criteria and independent review. Phases describe release gates; foundation declarations are not completed runtime adapters.
+
+
+## Local folder/action track (planned; coordinated after ORB-010)
+
+This track can deliver useful local work before phases 2–5. It does not assert
+Phase 1 acceptance: Main still coordinates a full connected desktop mission and
+owned engine startup/connection work separately. Only ORB-010 documentation is
+launched here. The bounded items below are proposals, not reserved ORB IDs or
+implementation authorization; select unused IDs against live work/PRs when launched.
+
+| Sequence | Bounded PR scope | Dependencies | Acceptance / boundary |
+| --- | --- | --- | --- |
+| F1 | Typed workspace migration/registration, minimal versioned registry and direct metadata inventory/report slice | ORB-010; existing project persistence/path services | Non-Git folder registers/restarts and inventories explicit bounded file selection without `.git` or source writes; view/export report as a run artifact; schema/handler/scope rejection and Git regression checks. Export to a user folder waits for F2. No document-body parsing or model needed. |
+| F2 | One new-artifact action (supported plain-text index/report), staged publication | F1 | Explicit destination/format, no-clobber collision policy, preview/approval, destination recheck, interrupted-publication evidence/recovery. Source contents unchanged; no moves/replacements. |
+| F3 | Versioned workflow templates over F1/F2 actions, direct invocation | F1–F2 | Pinned versions, typed mappings/dependencies, invalid graph/version rejection, exact run snapshot and approval boundaries; direct repeatable report flow without model. |
+| F4 | Installed-local intent/entity resolver and clarification UI | F3; installed-model discovery/capability checks | Representative known/ambiguous/unsupported fixtures; schema validation independent of model; unavailable routing/direct fallback; no native tool assumption, downloads or cloud/API fallback. |
+| F5 | One previewed rename/move action with recovery | F2–F4; documented crash-safe manifest protocol | Preview mappings; explicit approval; collision/source/destination-version checks; cancel/restart/partial-failure reconciliation and separately approved recovery preserve unrelated changes. No arbitrary delete/replacement action bundled. |
+
+Each slice owns its engine contracts, persistence, UI and same-PR Help/diagram/
+screenshot updates as applicable, meaningful boundary tests and independent review.
+If a slice exceeds a reviewable size, Main splits its contracts before launch and
+records exact dependencies. Broader formats, extraction summaries, replacements,
+cloud workflows and learned skills require separately scoped follow-ups. See
+[ORB-010 coverage and examples](work-items/ORB-010.md). Folder task completion
+never triggers Git merge; all changes to Orbit still follow repository PR rules.
