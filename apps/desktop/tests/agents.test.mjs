@@ -318,7 +318,7 @@ test('Help remains available during a pending profile save without changing the 
   let release;
   h.replies.push(new Promise(resolve => { release = resolve; }));
   const pending = h.submit(true);
-  assert.equal(h.button('Help').props.disabled, false);
+  assert.notEqual(h.button('Help').props.disabled, true);
   h.button('Help').props.onClick();
   assert.equal(h.byId('agent-name').props.value, 'Kept draft');
   assert.equal(h.calls.length, 4);

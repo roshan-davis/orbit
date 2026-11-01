@@ -50,7 +50,7 @@ export function HelpGuide({ hidden = false }: { hidden?: boolean }) {
     <PageHeading eyebrow="THE ORBIT GUIDE" title="See how Orbit works." description="Start with the pictures. Follow one small example. Open the detailed steps when you need them." />
     <section id="help-map" className="help-map help-visual-intro" tabIndex={-1} aria-labelledby="help-map-title">
       <h2 id="help-map-title">Your project. A clear mission. Changes you can inspect.</h2>
-      <p>Stop losing instructions and changes across separate AI conversations. Orbit brings saved agent profiles, clear goals and reviewable changes into one local workspace.</p>
+      <p>Stop losing instructions and changes across separate AI conversations. Orbit brings saved agent profiles, clear goals and reviewable changes into one local workspace.</p><a className="help-screen-link" href="#help-connect">Learn with app screenshots ↓</a>
       <HelpPicture name="orbit-map" title="How the pieces fit" description="Your project and saved agent support a mission. The local engine coordinates an explicitly granted run in a separate worktree. You inspect its result." />
     </section>
     <div className="help-layout"><aside className="help-index" aria-label="Help topics"><label htmlFor="help-search">Find a topic</label><input id="help-search" type="search" placeholder="Try “review” or “bytes”" value={query} onChange={e => setQuery(e.target.value)} /><p role="status">{search ? `${results.length} matching ${results.length === 1 ? 'topic' : 'topics'}` : 'Your guide, at your pace'}</p><nav aria-label="Help table of contents"><a href="#help-map">The big picture</a>{results.map(topic => <a key={topic.id} href={`#help-${topic.id}`}><span aria-hidden="true">{String(topics.indexOf(topic) + 1).padStart(2, '0')}</span>{topic.title}</a>)}</nav>{search && <button type="button" className="button button--quiet" onClick={() => setQuery('')}>Clear search</button>}</aside>
@@ -62,7 +62,7 @@ export function HelpGuide({ hidden = false }: { hidden?: boolean }) {
         <HelpPicture name="greeting-example" title="A one-file example" description="Hypothetical example: grant greeting.txt with acceptance Hello Orbit. Orbit uses a separate worktree. Inspect the diff from Hello world to Hello Orbit, then review and decide. Tests and Git integration remain manual." />
       </section>}
     {results.length === 0 && <section className="help-topic"><h2>No matching topics</h2><p>Try a shorter phrase such as “files”, “engine” or “revision”, or clear the search to read the whole guide.</p></section>}
-    {results.map(topic => <article key={topic.id} id={`help-${topic.id}`} className="help-topic" tabIndex={-1} aria-labelledby={`help-title-${topic.id}`}><span className="eyebrow">{String(topics.indexOf(topic) + 1).padStart(2, '0')} / THE PRACTICAL PART</span><h2 id={`help-title-${topic.id}`}>{topic.title}</h2><p className="help-lead">{topic.intro}</p>{topic.steps && <ol className="help-steps">{topic.steps.map(step => <li key={step}>{step}</li>)}</ol>}{topic.example && <aside className="help-example"><span className="eyebrow">HYPOTHETICAL EXAMPLE</span><p>{topic.example}</p></aside>}{topic.steps ? <details className="help-detail"><summary>Details & limits</summary><div>{topic.details}</div></details> : topic.details}<a className="help-back" href="#help-search">Back to topics ↑</a></article>)}
+    {results.map(topic => <article key={topic.id} id={`help-${topic.id}`} className="help-topic" tabIndex={-1} aria-labelledby={`help-title-${topic.id}`}><span className="eyebrow">{String(topics.indexOf(topic) + 1).padStart(2, '0')} / THE PRACTICAL PART</span><h2 id={`help-title-${topic.id}`}>{topic.title}</h2><p className="help-lead">{topic.intro}</p>{['connect', 'agents', 'permissions'].includes(topic.id) && <HelpScreenshot topic={topic.id} />}{topic.steps && <ol className="help-steps">{topic.steps.map(step => <li key={step}>{step}</li>)}</ol>}{topic.example && <aside className="help-example"><span className="eyebrow">HYPOTHETICAL EXAMPLE</span><p>{topic.example}</p></aside>}{topic.steps ? <details className="help-detail"><summary>Details & limits</summary><div>{topic.details}</div></details> : topic.details}<a className="help-back" href="#help-search">Back to topics ↑</a></article>)}
     </div></div>
   </section>;
 }
@@ -81,5 +81,25 @@ function HelpPicture({ name, title, description }: { name: string; title: string
       <img src={`/help/${name}.svg`} alt={description} width="960" height={name === 'orbit-map' ? 350 : name === 'mission-flow' ? 420 : 330} />
     </picture>
     <figcaption>{description}</figcaption>
+  </figure>;
+}
+
+const screenshotGuides: Record<string, { file: string; title: string; alt: string; pointers: string[] }> = {
+  connect: { file: 'workspace', title: 'Where to connect and register a project', alt: 'Workspace setup: Connect your engine is on the left; Add a project is on the right. The session field is empty.', pointers: ['Choose Workspace setup in the workspace navigation.', 'Connect your manually started engine using its password field on the left.', 'After connecting, enter a project name and its canonical repository folder on the right.'] },
+  agents: { file: 'agent', title: 'Where your agent profile lives', alt: 'Agents editor showing the tutorial identity Mira, its role, seniority, model and provider fields.', pointers: ['Choose Agents, then Create agent or Edit beside an existing identity.', 'Name and role describe who does the work. Provider and model select its binding.', 'Continue below these fields for expertise, skill/tool references and instructions. Save when ready.'] },
+  permissions: { file: 'mission', title: 'Where to grant files before a run', alt: 'An assigned tutorial mission: mission list on the left, file-access fields and unchecked approval on the right, with Start locally disabled.', pointers: ['Select your assigned mission in the list on the left.', 'On the right, enter an existing external worktree parent and named relative text files.', 'Review the grant before checking its approval. This tutorial has not approved or started a run.'] },
+};
+function HelpScreenshot({ topic }: { topic: string }) {
+  const guide = screenshotGuides[topic];
+  return <figure className="help-screen-guide">
+    <span className="eyebrow">REAL APP SCREEN · TUTORIAL EXAMPLE</span>
+    <h3>{guide.title}</h3>
+    <img src={`/help/screenshots/${guide.file}.png`} alt={guide.alt} loading="lazy" />
+    <button type="button" className="button button--secondary" onClick={event => (event.currentTarget.nextElementSibling as HTMLDialogElement).showModal()}>Enlarge screenshot: {guide.title}</button>
+    <dialog className="help-screen-dialog" aria-label={guide.title} onClick={event => { if (event.target === event.currentTarget) event.currentTarget.close(); }}>
+      <button type="button" className="button button--secondary" autoFocus onClick={event => event.currentTarget.closest('dialog')?.close()}>Close screenshot</button>
+      <img src={`/help/screenshots/${guide.file}.png`} alt={guide.alt} />
+    </dialog>
+    <figcaption><ol>{guide.pointers.map(pointer => <li key={pointer}>{pointer}</li>)}</ol><p>Captured from a disposable tutorial workspace. Names and model text illustrate configuration; they are not your live data or proof a model can run. On a narrow window, scroll inside the enlarged image to read its controls. Press Escape to close it.</p></figcaption>
   </figure>;
 }

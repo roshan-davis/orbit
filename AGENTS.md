@@ -37,7 +37,8 @@ independent review.
 ## Keep in-app Help current
 
 Every user-facing feature or behavior change must update the relevant workflow,
-examples and limitations in `apps/desktop/src/help.tsx` in the same PR. Keep the
+examples and limitations in `apps/desktop/src/help.tsx` in the same PR. Refresh
+affected diagrams and tutorial screenshots when controls or workflows change. Keep the
 guide accurate about current capabilities, manual steps, permissions and planned
 features; use clearly labeled hypothetical examples rather than fabricated app data.
 Review the Help impact explicitly in the PR and canonical work item. Internal-only

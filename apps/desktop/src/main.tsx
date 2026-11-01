@@ -175,10 +175,10 @@ function App() {
     <aside className="sidebar" aria-label="Orbit navigation">
       <a className="brand" href="#missions" onClick={() => navigate('missions')} aria-label="Orbit home"><span className="brand-symbol"><Icon name="orbit" /></span><span>Orbit<span className="brand-caption">Many minds. One mission.</span></span></a>
       <span className="nav-label">WORKSPACE</span>
-      <nav>{([['missions', 'Missions', 'missions'], ['agents', 'Agents', 'agents'], ['providers', 'Models & capacity', 'providers'], ['workspace', 'Workspace setup', 'workspace'], ['help', 'Help', 'help']] as const).map(([id, label, icon]) =>
+      <nav>{([['missions', 'Missions', 'missions'], ['agents', 'Agents', 'agents'], ['providers', 'Models & capacity', 'providers'], ['workspace', 'Workspace setup', 'workspace']] as const).map(([id, label, icon]) =>
         <Button key={id} type="button" variant="quiet" className={`nav-item ${view === id ? 'is-active' : ''}`} aria-current={view === id ? 'page' : undefined} aria-label={label} title={label}
-          disabled={id !== 'help' && changingWorkspace} onClick={() => navigate(id)}><Icon name={icon} />{label}{id === 'missions' && taskLoaded && <span className="nav-count">{tasks.length}</span>}</Button>)}</nav>
-      <div className="sidebar-bottom"><div className="engine-status"><span className={`status-light ${session ? 'is-connected' : ''}`} /><div><strong>{session ? 'Session connected' : 'Not connected'}</strong><small>Local on this device</small></div></div>
+          disabled={changingWorkspace} onClick={() => navigate(id)}><Icon name={icon} />{label}{id === 'missions' && taskLoaded && <span className="nav-count">{tasks.length}</span>}</Button>)}</nav>
+      <div className="sidebar-bottom"><nav className="learn-navigation" aria-label="Learn"><span className="nav-label">LEARN</span><Button type="button" variant="quiet" className={`nav-item ${view === 'help' ? 'is-active' : ''}`} aria-current={view === 'help' ? 'page' : undefined} aria-label="Help" title="Help & visual guide" onClick={() => navigate('help')}><Icon name="help" />Help & visual guide</Button></nav><div className="engine-status"><span className={`status-light ${session ? 'is-connected' : ''}`} /><div><strong>{session ? 'Session connected' : 'Not connected'}</strong><small>Local on this device</small></div></div>
         <Button type="button" variant="quiet" className="theme-switch" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'} />Switch to {theme === 'dark' ? 'light' : 'dark'} theme</Button>
         <small className="privacy-note">Local workspace · Preview</small></div>
     </aside>

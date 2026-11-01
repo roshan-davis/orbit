@@ -94,3 +94,8 @@ text. The guide leads with bundled SVG diagrams, with independently composed ver
 versions for narrow windows. Every image has meaningful alternative text and a
 visible text equivalent. Native topic links and disclosures support keyboard use.
 Update affected guidance in the same PR as user-facing behavior (see AGENTS.md).
+
+Help has a separate Learn landmark in the sidebar. Real tutorial screenshots
+include numbered pointers, explicit example-data captions and a keyboard-operable
+native dialog for enlargement. Preserve Escape close and return focus. Refresh
+affected diagrams/screenshots alongside guidance when workflows change.
