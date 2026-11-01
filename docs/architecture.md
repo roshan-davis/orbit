@@ -30,6 +30,30 @@ Keep Agent, Role, Skill, Provider/Model and Task independent. Agent identity is 
 
 Target persistence includes projects/workspaces, agents, role definitions, missions, tasks, assignments, runs/steps, reviews/approvals, artifacts/events, action/workflow versions, provider accounts, quota pools/windows/observations and skill versions/evaluations/publications. The preview has schema v4: v3 project/task/dependency/assignment/event state plus ORB-007 run records. This is not implementation of the full target model. Migrations are explicit and transactional; see ORB-005 and ORB-006 canonical evidence for implemented contracts and limits. Enable foreign keys and WAL; short transactions and one logical write coordinator avoid concurrency contention. Back up consistently and test restore before destructive migrations.
 
+## Model selection and assignment binding (planned)
+
+Agent configuration has a default provider/model plus explicitly allowed bindings
+and a selection policy. Bindings distinguish family, exposed model ID/version and
+capability tier; role/seniority remain identity/authority fields. Select for task
+complexity/risk, expertise, evaluated capabilities/context/features, availability,
+subscription auth/quota or local compute, permissions and user cost preferences.
+Older/smaller models may be suitable; latest/largest is not a ranking rule. Reject
+unsupported settings and insufficient capabilities rather than inferring tools from
+a model name. Independent review needs a distinct reviewer agent, not necessarily
+a different model family or the newest model.
+
+A new assignment snapshots provider, exact exposed model identifier/version,
+supported settings, selection reason, policy/version and capability/readiness evidence.
+Pin revision/digest when available; mutable aliases retain an explicit reproducibility
+limit. Default/profile edits affect future assignments only. Engine preflight checks
+readiness against the recorded binding; do not silently substitute on failure.
+Policy-authorized choices among named alternatives apply to new assignments within
+the existing scope/cost/grant, with visible audit evidence. An unavailable eligible
+model blocks actionably; provider/cost/permission expansion requires approval.
+No API fallback, automatic downloads or quota/auth bypass. The current profile and
+assignment snapshot hold the single saved provider/model; this richer selector and
+metadata are planned migration/UI work, not delivered by this documentation PR.
+
 ## Lifecycle and recovery
 ORB-006 implements task metadata transitions, assignment snapshots, dependency gates and transactional history. ORB-007 adds bounded local execution, saved logs/diffs and cancellation endpoints; ORB-008/009 expose manual review/completion and Help. Reviewer/human identity fields are assertions by the trusted session holder, not actual separate reviewer execution or worker authorization. Run records bind the worktree/base; assignment snapshots do not verify skill versions. See canonical ORB-007–009 evidence for exact preview limits.
 

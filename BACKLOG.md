@@ -34,7 +34,7 @@ ORB-001 does not block the already authorized ORB-002–004 work. ORB-005 and OR
 
 | ID | Scope / canonical evidence | Status | Dependencies | Requirements | Acceptance gate |
 | --- | --- | --- | --- | --- | --- |
-| ORB-010 | [Development orchestration, workspaces and actions](docs/work-items/ORB-010.md), [PR #11](https://github.com/roshan-davis/orbit/pull/11) | In progress — planning/guidance independently reviewed; merge authorization pending | Fetched main including ORB-007–009 | R02–R09, R15–R22 | Development-first requirements/domain/sequence, separate folder/photo extension, coverage/examples and accurate Help plans; no runtime completion. |
+| ORB-010 | [Development orchestration, workspaces and actions](docs/work-items/ORB-010.md), [PR #11](https://github.com/roshan-davis/orbit/pull/11) | In progress — model-selection clarification awaiting fresh review; merge authorization pending | Fetched main including ORB-007–009 | R02–R09, R15–R22 | Development-first requirements/domain/sequence, separate folder/photo extension, coverage/examples and accurate Help plans; no runtime completion. |
 
 [Development-first delivery sequence](docs/roadmap.md#development-first-delivery-sequence-planned):
 complete connected development mission + owned startup → subscription CLI support

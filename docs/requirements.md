@@ -20,7 +20,7 @@ Source: user setup brief and the available October 31, 2026 conversation, “Mul
 | R01 | Local-first Tauri 2, React/TypeScript desktop; FastAPI engine; SQLite | Core state works without a cloud account; database survives restart. |
 | R02 | Independent project and workspace | Project owns goal, instructions, configured team, missions/tasks, decisions/history and acceptance. Begin with one primary workspace defining kind, canonical roots, scope and isolation. Git development and ordinary-folder work are separate projects; no implicit cross-project context/files/history/grants. Folder work never requires `git init`, branches or commits. |
 | R03 | Persistent agent identity | Store name, instructions, role, seniority, expertise, skills, tool permissions and model binding; switching providers preserves identity/history; reuse across projects grants only assignment-scoped context/access, never implicit sharing. |
-| R04 | Flexible assignments | Assemble mission teams dynamically by capability, role, availability and permissions; multiple agents may share a role/provider. Seniority is assigned authority, not a model quality guarantee. |
+| R04 | Flexible assignments | Assemble mission teams dynamically by capability, role, availability and permissions; multiple agents may share a role/provider. Seniority is assigned authority, not a model quality guarantee. Select among explicitly supported model families, versions and capability tiers for the role/task under configured policy; newer/larger is not automatically better. |
 | R05 | Tasks and peer review | Tasks have dependencies, acceptance criteria, artifacts and audit history; critical changes require a reviewer distinct from the author. Development requires actual independent review distinct from the author, with rejection returning to revision. Risk/artifact policy governs folder review and approvals; routine conversions need not require a second agent. Policy governs action approvals and artifact sign-off; Git merge separately requires explicit approval in Git workspaces. Folder completion never implies Git merge. |
 | R06 | Cloud CLI adapters | Claude Code, Codex CLI and Gemini CLI use each CLI's supported subscription/account authentication. Missing entitlement or unsupported mode blocks execution; never fall back to paid APIs. |
 | R07 | Local model adapter | Support Ollama with installed Gemma/Qwen models and other installed local/open models through explicitly supported adapters to propose known workflow IDs and typed entities/parameters. Detect capabilities; native tools are not assumed. Missing/ambiguous inputs require clarification, unsupported intents stay blocked, and direct invocation works without model routing. No automatic downloads. |
@@ -39,6 +39,35 @@ Source: user setup brief and the available October 31, 2026 conversation, “Mul
 | R20 | Auditable action runs | Persist run/step IDs, pinned versions, redacted validated inputs, grant/approval evidence, progress, outputs, acceptance results and explicit failures. Completion derives from inspected artifacts/checks, not model claims. |
 | R21 | Routine development follow-through | Within authorized scope, Orbit reads request/project rules, defines acceptance and bounded plan/dependencies, assigns capable configured agents, implements in isolated worktrees, runs relevant tests/builds and fixes failures, obtains actual independent review and resolves findings, prepares PR/evidence, requests explicit human merge authorization, then verifies authorized integration and updates status. Users need not repeatedly request continue/test/fix/status. |
 | R22 | Human decision boundaries | Ask for material ambiguity, direction/scope/cost decisions, unavailable access/provider, permission expansion or required approval. Routine follow-through proceeds within grants. No hidden provider change, paid fallback, unattended merge or uncontrolled scope expansion; safe restart reconciles effects before repeating work. |
+
+## Role- and task-based model selection (planned)
+
+An agent identity is independent of its provider/model binding. Configure a default
+binding and allowed alternatives, including supported older versions, smaller/local
+models or more capable tiers. Choose using role, expertise, task complexity/risk,
+demonstrated capability, supported features/context limits, availability, subscription
+entitlement/quota or local compute, permissions and user cost preferences. Marketing
+names, recency and assigned seniority are not capability evidence. An architect may
+need stronger planning capability, an implementer coding capability, a distinct
+reviewer review capability and routine classification a smaller local model; these
+are examples, not fixed provider roles or guarantees.
+
+Record the selected provider, exact exposed model identifier/version, supported
+settings, selection rationale and capability/readiness evidence in each assignment
+snapshot. Pin an immutable revision/digest where supported; if a provider exposes
+only a mutable alias, record that limitation rather than claiming exact weights are
+pinned. Later profile/default changes never alter an existing assignment. Validate
+capabilities and readiness before running; unsupported settings stay unavailable.
+
+Selection and any alternative must be explicit and auditable. An already-approved
+selection policy may choose among its named alternatives for a new assignment,
+within the same scope/cost/permission grant; it cannot silently replace the model
+of an existing assignment or switch providers after failure. If no eligible binding
+is ready, block with a useful explanation and request any required human decision.
+Provider/permission/cost expansion needs approval; no hidden paid API fallback,
+model download or entitlement/quota bypass. Current preview saves one provider/model
+binding and snapshots it; policy selection, richer version/settings records and
+automatic role/task routing remain planned.
 
 ## Development orchestration and shared actions (planned)
 
