@@ -28,3 +28,20 @@ flowchart LR
 ```
 
 ORB-001 does not block the already authorized ORB-002–004 work. ORB-005 and ORB-006 are merged; ORB-007 is in progress with validation evidence in its work item. Phase 1 remains gated on the full safe local mission, not isolated feature PRs. Later subscription CLI support, orchestration, energy, skills, distribution, private remote access and design integrations remain [roadmap phases 2–8](docs/roadmap.md); no new implementation chats are authorized by this index.
+
+
+## Development orchestration and shared-action alignment
+
+| ID | Scope / canonical evidence | Status | Dependencies | Requirements | Acceptance gate |
+| --- | --- | --- | --- | --- | --- |
+| ORB-010 | [Development orchestration, workspaces and actions](docs/work-items/ORB-010.md), [PR #11](https://github.com/roshan-davis/orbit/pull/11) | Complete (documentation/guidance validated and independently reviewed; Rosh authorized merge; see PR #11 for verified integration state) | Fetched main including ORB-007–009 | R02–R09, R15–R22 | Development-first requirements/domain/sequence, separate folder/photo extension, coverage/examples and accurate Help plans; no runtime completion. |
+
+[Development-first delivery sequence](docs/roadmap.md#development-first-delivery-sequence-planned):
+complete connected development mission + owned startup → subscription CLI support
+and reduced supervision → shared actions proving development value (technical
+foundation can precede progression) → separate folder/photo project → broader
+capacity/learned skills. D1–D7 and E1–E2 are proposed slices, not reserved ORB IDs or
+implementation authorization. Folder inventory/reporting is only a possible technical
+fixture. E1/E2 can ship incrementally after D4 value without waiting for every future
+orchestration milestone. Main selects IDs/ownership against live PR evidence.
+Existing historical rows remain unchanged and may lag actual merge/review evidence.

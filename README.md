@@ -1,7 +1,12 @@
 # Orbit
 **Many minds. One mission.** Any agent. Any role. Any model. Any project.
 
-Orbit is a local-first desktop mission control for persistent, configurable AI agents working across your projects. This is an independent repository, separate from Atelier.
+Orbit is local-first agent orchestration for developing apps with minimal
+hand-holding. The planned development loop owns implementation, checks, fixes,
+actual independent review and PR evidence, then asks for explicit human merge
+authorization. Atelier is an example managed project, never Orbit’s repository or
+a dependency. Separate ordinary-folder projects, such as photo processing, are a
+secondary extension using the shared core.
 
 ## Current state
 Tauri 2 + React/TypeScript UI, Python/FastAPI engine and SQLite state support
@@ -12,6 +17,10 @@ Cancellation and restart interruption retain isolated worktrees without automati
 retry. Cloud execution, scheduling and skill publishing remain planned. Engine
 startup/token entry are manual; packaged sidecar supervision is not implemented.
 Open **Help** in the app for the current step-by-step guide, examples and limitations; it is available without an engine connection.
+Full development orchestration, actual reviewer execution, ordinary folder/photo
+workflows and a versioned deterministic action engine are planned,
+not available in the current UTF-8 Git replacement runner. See the
+[development-first implementation sequence](docs/roadmap.md#development-first-delivery-sequence-planned).
 See [ORB-007 evidence and limits](docs/work-items/ORB-007.md) before using the preview.
 
 ## Run from your normal clone
