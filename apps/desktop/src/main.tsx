@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
+import { HelpGuide } from './help';
 import { Badge, Button, EmptyState, Icon, PageHeading, Panel, Tabs } from './design-system';
 import { Agent, Profile, emptyProfile, profileOf, request } from './agents';
 
@@ -16,7 +17,7 @@ type Run = { id: string; status: string; path: string; branch: string; base_sha:
   files: string[]; logs: string[]; diff: string; model: string };
 
 function App() {
-  const [view, setView] = useState<'missions' | 'agents' | 'providers' | 'workspace'>('missions');
+  const [view, setView] = useState<'missions' | 'agents' | 'providers' | 'workspace' | 'help'>('missions');
   const [evidenceTab, setEvidenceTab] = useState('overview');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [composing, setComposing] = useState(false);
@@ -177,12 +178,12 @@ function App() {
       <nav>{([['missions', 'Missions', 'missions'], ['agents', 'Agents', 'agents'], ['providers', 'Models & capacity', 'providers'], ['workspace', 'Workspace setup', 'workspace']] as const).map(([id, label, icon]) =>
         <Button key={id} type="button" variant="quiet" className={`nav-item ${view === id ? 'is-active' : ''}`} aria-current={view === id ? 'page' : undefined} aria-label={label} title={label}
           disabled={changingWorkspace} onClick={() => navigate(id)}><Icon name={icon} />{label}{id === 'missions' && taskLoaded && <span className="nav-count">{tasks.length}</span>}</Button>)}</nav>
-      <div className="sidebar-bottom"><div className="engine-status"><span className={`status-light ${session ? 'is-connected' : ''}`} /><div><strong>{session ? 'Session connected' : 'Not connected'}</strong><small>Local on this device</small></div></div>
+      <div className="sidebar-bottom"><nav className="learn-navigation" aria-label="Learn"><span className="nav-label">LEARN</span><Button type="button" variant="quiet" className={`nav-item ${view === 'help' ? 'is-active' : ''}`} aria-current={view === 'help' ? 'page' : undefined} aria-label="Help" title="Help & visual guide" onClick={() => navigate('help')}><Icon name="help" />Help & visual guide</Button></nav><div className="engine-status"><span className={`status-light ${session ? 'is-connected' : ''}`} /><div><strong>{session ? 'Session connected' : 'Not connected'}</strong><small>Local on this device</small></div></div>
         <Button type="button" variant="quiet" className="theme-switch" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'} />Switch to {theme === 'dark' ? 'light' : 'dark'} theme</Button>
         <small className="privacy-note">Local workspace · Preview</small></div>
     </aside>
     <div className="workspace-shell">
-      <header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{view === 'missions' ? 'Missions' : view === 'agents' ? 'Agents' : view === 'providers' ? 'Models & capacity' : 'Setup'}</strong></div>
+      <header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{view === 'missions' ? 'Missions' : view === 'agents' ? 'Agents' : view === 'providers' ? 'Models & capacity' : view === 'help' ? 'Help' : 'Setup'}</strong></div>
         <div className="project-switcher">      <label htmlFor="project-selection">Selected project</label>
       <select id="project-selection" value={selected?.id ?? ''} disabled={!session || busy || projectBusy || taskBusy}
         onChange={e => { void selectProject(e.target.value); }}>
@@ -349,6 +350,7 @@ function App() {
     </section>
 
         </div></section>
+        <HelpGuide hidden={view !== 'help'} />
         <footer>Any agent. Any role. Any model. Any project.<span>Orbit · Local preview</span></footer>
       </div>
     </div>

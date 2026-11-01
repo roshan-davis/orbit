@@ -218,3 +218,6 @@ footer { border-top: 1px solid var(--line); margin-top: var(--space-10); padding
 .mission-overview strong { margin: 0; font-size: 20px; }
 .mission-overview > div:first-child { display: none; }
 @media (max-width: 540px) { .mission-overview > div { display: block; } }
+
+.learn-navigation { margin-bottom: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.learn-navigation .nav-label { padding-bottom: 8px; }

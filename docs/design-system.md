@@ -84,3 +84,18 @@ a separate note and explicit checkbox and never merges or pushes Git.
 
 No Emergency Stop, persona testing, identity forking, DAG editor, automatic testing
 or telemetry is implied. Model inventory alone is not execution readiness.
+
+## Help guide
+
+`apps/desktop/src/help.tsx` owns current workflow guidance and examples; `help.css`
+uses the existing semantic tokens. Help remains available offline and while other
+requests are pending. Search filters complete topics, including disclosed detail
+text. The guide leads with bundled SVG diagrams, with independently composed vertical
+versions for narrow windows. Every image has meaningful alternative text and a
+visible text equivalent. Native topic links and disclosures support keyboard use.
+Update affected guidance in the same PR as user-facing behavior (see AGENTS.md).
+
+Help has a separate Learn landmark in the sidebar. Real tutorial screenshots
+include numbered pointers, explicit example-data captions and a keyboard-operable
+native dialog for enlargement. Preserve Escape close and return focus. Refresh
+affected diagrams/screenshots alongside guidance when workflows change.

@@ -8,7 +8,7 @@ import ts from 'typescript';
 
 function host() {
   const states = []; let cursor = 0; let App; const calls = []; const replies = [];
-  const react = { createElement: (type, props, ...children) => ({ type, props: { ...props, children: children.length ? children : (props?.children ?? []) } }),
+  const react = { isValidElement: node => !!node && typeof node === 'object' && 'type' in node, createElement: (type, props, ...children) => ({ type, props: { ...props, children: children.length ? children : (props?.children ?? []) } }),
     useState(initial) { const i = cursor++; if (!(i in states)) states[i] = initial;
       return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; } };
   const context = { Error, window: { scrollTo() {} }, document: { getElementById: () => ({}) }, AbortSignal, fetch: async (url, options) => {
@@ -26,7 +26,8 @@ function host() {
   }
   const agents = load('../src/agents.ts', {});
   const design = load('../src/design-system.tsx', { react });
-  load('../src/main.tsx', { react, './agents': agents, './design-system': design, './styles.css': {},
+  const help = load('../src/help.tsx', { react, './design-system': design, './help.css': {} });
+  load('../src/main.tsx', { react, './agents': agents, './design-system': design, './help': help, './styles.css': {},
     'react-dom/client': { createRoot: () => ({ render: node => { App = node.props.children[0].type; } }) } });
   function render() { cursor = 0; return App(); }
   function nodes(node) { if (node && typeof node === 'object' && typeof node.type === 'function') return nodes(node.type(node.props)); return Array.isArray(node) ? node.flatMap(nodes) : node && typeof node === 'object' ? [node, ...nodes(node.props.children)] : []; }
@@ -294,4 +295,34 @@ test('review rejection requires a distinct reviewer, revision reassigns, complet
   h.button('Approve completion of Check parser').props.onClick(); await new Promise(resolve => setImmediate(resolve));
   assert.deepEqual(JSON.parse(h.calls.at(-1).body), { expected_version: 6, state: 'completed', note: 'Acceptance evidence inspected.', human_approval: true });
   assert.ok(h.calls.every(call => !/merge|push/.test(call.url)));
+});
+
+test('offline Help search includes disclosed limits, recovers from no match and makes no requests', () => {
+  const h = host();
+  h.button('Help').props.onClick();
+  assert.equal(h.all().find(n => n.props['aria-label'] === 'Orbit Help').props.hidden, false);
+  h.change('help-search', '65,536');
+  assert.ok(h.byId('help-permissions'));
+  assert.equal(h.byId('help-agents'), undefined);
+  h.change('help-search', 'no-such-help-topic');
+  assert.ok(h.all().some(n => n.type === 'h2' && h.text(n) === 'No matching topics'));
+  h.button('Clear search').props.onClick();
+  assert.ok(h.byId('help-agents'));
+  assert.equal(h.calls.length, 0);
+});
+
+test('Help remains available during a pending profile save without changing the draft or request', async () => {
+  const h = host(); await connected(h);
+  h.button('Create agent').props.onClick();
+  h.change('agent-name', 'Kept draft');
+  let release;
+  h.replies.push(new Promise(resolve => { release = resolve; }));
+  const pending = h.submit(true);
+  assert.notEqual(h.button('Help').props.disabled, true);
+  h.button('Help').props.onClick();
+  assert.equal(h.byId('agent-name').props.value, 'Kept draft');
+  assert.equal(h.calls.length, 4);
+  release({ status: 422 }); await pending;
+  assert.equal(h.byId('agent-name').props.value, 'Kept draft');
+  assert.equal(h.calls.length, 4);
 });

@@ -33,3 +33,15 @@ finishing the work; do not wait for a separate request to add completion marks.
 Only mark work complete when the evidence supports it. Completion tracking does
 not itself authorize merging; follow the user's merge authorization and required
 independent review.
+
+## Keep in-app Help current
+
+Every user-facing feature or behavior change must update the relevant workflow,
+examples and limitations in `apps/desktop/src/help.tsx` in the same PR. Refresh
+affected diagrams and tutorial screenshots when controls or workflows change. Keep the
+guide accurate about current capabilities, manual steps, permissions and planned
+features; use clearly labeled hypothetical examples rather than fabricated app data.
+Review the Help impact explicitly in the PR and canonical work item. Internal-only
+changes may state “No help impact” with a concrete reason. Reviewers must check the
+Help-impact entry and affected guidance before approval. Preserve offline Help access,
+keyboard navigation, readable themes and narrow-window layout.
