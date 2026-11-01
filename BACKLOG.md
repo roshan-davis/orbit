@@ -34,7 +34,7 @@ ORB-001 does not block the already authorized ORB-002–004 work. ORB-005 and OR
 
 | ID | Scope / canonical evidence | Status | Dependencies | Requirements | Acceptance gate |
 | --- | --- | --- | --- | --- | --- |
-| ORB-010 | [Folder workflows and action requirements](docs/work-items/ORB-010.md) | In progress — documentation only | Fetched main including ORB-007–009 | R02, R05, R07–R09, R15–R20 | Canonical contracts, source coverage, bounded sequence, acceptance examples and independent docs review; no runtime feature completion. |
+| ORB-010 | [Folder workflows and action requirements](docs/work-items/ORB-010.md), [PR #11](https://github.com/roshan-davis/orbit/pull/11) | In progress — documentation only | Fetched main including ORB-007–009 | R02, R05, R07–R09, R15–R20 | Canonical contracts, source coverage, bounded sequence, acceptance examples and independent docs review; no runtime feature completion. |
 
 [F1–F5 in the roadmap](docs/roadmap.md#local-folderaction-track-planned-coordinated-after-orb-010)
 are proposed implementation slices: inventory/registry → staged artifacts → templates

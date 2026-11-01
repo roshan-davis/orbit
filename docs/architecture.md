@@ -79,9 +79,11 @@ flowchart TD
   Clarify --> Validate[Engine: schemas + workspace + policy]
   Validate --> Approval[Required exact-scope approval]
   Approval --> Handler[Registered pinned action handler]
-  Handler --> Stage[Read-only result or staged output / preview]
+  Handler --> Read[Read-only result]
+  Read --> Evidence[Artifact checks + audit / recovery manifest]
+  Handler --> Stage[Staged output / preview]
   Stage --> Apply[Approved apply with collision / version recheck]
-  Apply --> Evidence[Artifact checks + audit / recovery manifest]
+  Apply --> Evidence
 ```
 
 Direct calls follow the same validation and policy path; read-only grants may
