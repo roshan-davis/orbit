@@ -3,45 +3,48 @@
 | Phase | Deliverables | Exit gate |
 | --- | --- | --- |
 | 0 — Foundation (this setup) | Independent Git repository, docs, desktop shell, SQLite agent API, provider declarations, tests | API tests and UI build pass; native-build limitations recorded |
-| 1 — One safe local mission | Project registry, agent editing, task state machine, Git worktree manager, Ollama adapter, logs/cancellation | A task runs against a temporary repo, survives failures, produces a reviewed diff; no main-checkout mutation |
+| 1 — Dependable connected development mission | Project registry, agent editing, task state machine, Git worktree manager, Ollama adapter, logs/cancellation | Connected desktop development request runs with actual checks/review evidence, revision and restart/cancel boundaries; owned startup/connection is a near-term companion gate; no primary-checkout mutation |
 | 2 — Subscription CLI support | Independently validate Claude Code, Codex CLI, Gemini CLI sign-in/machine output, capability detection and process handling | Contract tests with fixtures, opt-in real smoke tests per installed CLI; missing subscription auth fails closed, no API fallback |
-| 3 — Team orchestration | Dynamic assignments, dependency queue, peer review, human approvals, restart recovery | Two independent agents implement/review; rejection and conflicts block merge; duplicate/restart tests pass |
+| 3 — Team orchestration | Bounded automatic development follow-through, dependency queue, actual independent review, human integration decisions, restart recovery | Two independent agents implement/review; rejection and conflicts block merge; duplicate/restart tests pass |
 | 4 — Energy and scheduling | Shared account pools, windows, stale/unknown observations, reserves, local compute | Shared agents never double-count pools; short/long limits and unknown states tested |
 | 5 — Skill evolution | Periodic observer, architect proposals, evaluations, independent review, approval and registry | Unapproved version cannot activate; regression rollback demonstrated; skill/knowledge/automation classification |
 | 6 — Desktop distribution | Managed Python sidecar, secure token bootstrap, migration backups, packaging/signing | Clean-machine install, lifecycle, upgrade/restore and accessibility validation |
 | 7 — Private multi-device access | Device pairing, encrypted private transport, scoped permissions, remote dashboard | Unauthorized/revoked devices denied; remote approval audit and reconnect tested |
 | 8 — Design integrations | Google Stitch / Claude design discovery and supported connectors | Verified access and cost policy, artifact round-trip, accessibility and design-to-code review |
 
-## First tasks for Claude and Codex
-1. Add agent create/edit controls against the existing API and define shared API contract generation.
-2. Implement project registration and safe worktree lifecycle using temporary Git repositories in tests.
-3. Define task/assignment migrations and atomic transition tests before starting workers.
-4. Implement Ollama discovery without pulling models or spending cloud quota.
-5. Investigate CLI subscription preflight and fixtures one provider at a time; do not enable execution from a binary-presence check alone.
+## Development-first delivery sequence (planned)
 
-Keep each task on a focused branch with explicit acceptance criteria and independent review. Phases describe release gates; foundation declarations are not completed runtime adapters.
+Rosh's clarified priority supersedes the earlier folder-inventory-first proposal.
+The phase table is a set of capabilities/release gates, not a requirement to finish
+all orchestration before any useful folder flow. Near-term startup/connection work
+from phase 6 moves alongside the complete development mission. Only ORB-010
+planning/guidance is launched here; the slices below have no reserved ORB IDs or
+implementation authorization. Main checks live PR/work-item state, assigns owners
+and serializes shared docs before launching each bounded PR.
 
-
-## Local folder/action track (planned; coordinated after ORB-010)
-
-This track can deliver useful local work before phases 2–5. It does not assert
-Phase 1 acceptance: Main still coordinates a full connected desktop mission and
-owned engine startup/connection work separately. Only ORB-010 documentation is
-launched here. The bounded items below are proposals, not reserved ORB IDs or
-implementation authorization; select unused IDs against live work/PRs when launched.
-
-| Sequence | Bounded PR scope | Dependencies | Acceptance / boundary |
+| Priority / slice | Bounded implementation PR | Dependencies | Acceptance gate |
 | --- | --- | --- | --- |
-| F1 | Typed workspace migration/registration, minimal versioned registry and direct metadata inventory/report slice | ORB-010; existing project persistence/path services | Non-Git folder registers/restarts and inventories explicit bounded file selection without `.git` or source writes; view/export report as a run artifact; schema/handler/scope rejection and Git regression checks. Export to a user folder waits for F2. No document-body parsing or model needed. |
-| F2 | One new-artifact action (supported plain-text index/report), staged publication | F1 | Explicit destination/format, no-clobber collision policy, preview/approval, destination recheck, interrupted-publication evidence/recovery. Source contents unchanged; no moves/replacements. |
-| F3 | Versioned workflow templates over F1/F2 actions, direct invocation | F1–F2 | Pinned versions, typed mappings/dependencies, invalid graph/version rejection, exact run snapshot and approval boundaries; direct repeatable report flow without model. |
-| F4 | Installed-local intent/entity resolver and clarification UI | F3; installed-model discovery/capability checks | Representative known/ambiguous/unsupported fixtures; schema validation independent of model; unavailable routing/direct fallback; no native tool assumption, downloads or cloud/API fallback. |
-| F5 | One previewed rename/move action with recovery | F2–F4; documented crash-safe manifest protocol | Preview mappings; explicit approval; collision/source/destination-version checks; cancel/restart/partial-failure reconciliation and separately approved recovery preserve unrelated changes. No arbitrary delete/replacement action bundled. |
+| 1 / D1 | Complete connected desktop development mission | Existing ORB-005–009 preview | Run a real bounded development request through create/assign/grant/run, inspect retained diff, relevant manual checks, actual independent manual review, revision if needed and completion. Preserve primary checkout; disclose manual steps and native lifecycle/restart limits. Do not claim autonomous coding or merge. |
+| 1 / D2 | Owned engine startup/connection | Existing manual engine contract; coordinate with D1 | Owned child health/lifecycle, secure ephemeral session handoff, stable data location, reconnect/startup failure and restart evidence; no orphaned/duplicate engine or token logs. Full distribution/signing remains phase 6. |
+| 2 / D3 | One supported subscription CLI adapter | Provider contracts; D1 evidence | Verify official subscription auth/capabilities and bounded process/cancel fixtures, opt-in installed-CLI smoke; unavailable access blocks actionably. No API fallback or copied credentials. Repeat separately per provider. |
+| 3 / D4 | Minimal versioned development actions and direct workflow | Existing isolation/run contracts; D3 where CLI-dependent | Pin trusted repo-inspect/worktree/approved-check/diff handlers with typed schemas, effects/grants, timeout/cancel/recovery and run evidence; direct UI invocation works. First acceptance proves a useful development change/checks/diff, not folder inventory. PR preparation is a separately granted network effect. |
+| 2 / D5 | Automatic bounded task progression and actual reviewer execution | D4; supported agents/adapters from D3 or local capabilities | Claim scoped dependent steps, implement/check/fix, launch reviewer distinct from author, address findings/recheck and prepare PR evidence without routine continue prompts. Rejection loops to revision; missing access/cost/scope decisions become actionable blockers. Restart avoids duplicate effects; no hidden provider changes. Split progression/reviewer/PR preparation into separate PRs if needed. |
+| 3 / D6 | Local intent/entity selection over development templates | D4; installed model discovery | Known workflow/version and typed inputs, ambiguous required inputs clarify, unsupported requests block; direct fallback works offline. Validate independently of model; no arbitrary shell/native-tool assumption. Can proceed alongside D5. |
+| 2 / D7 | Human integration decision and verified status | D5 review/PR evidence | Request explicit Rosh merge approval tied to reviewed revision/checks; changed head/conflict blocks integration. Only when authorized, verify GitHub integration and update evidence/status. Task completion is distinct from merge; no unattended merge. |
+| 4 / E1 | Separate folder project/workspace registration and staging contracts | D4 shared-core development acceptance; project/workspace migration | Preserve Git behavior and per-project context/files/history/grants; non-Git folder needs no `.git`. Define no-clobber separate-output preview, source/destination checks and crash/recovery manifest protocol. Inventory may be a technical fixture only. |
+| 4 / E2 | One supported photo resize/JPEG export workflow | E1; registered image parser/action; D4 templates | Explicit selected sources/dimensions/quality/destination; preserve originals, preview outputs/collisions, required approval, verify dimensions/format/integrity and visual evidence as applicable. Report succeeded/failed/skipped and actual effects; cancel/restart/partial failures reconcile. Direct invocation; risk-based review rather than universal second agent. No generic image support. |
+| 5 | Broader scheduling/capacity and learned skills, separately bounded | Mature shared core and evidence | Preserve phase 4 quota honesty and phase 5 evaluation/review/human publication gates; learning never expands permissions. |
 
-Each slice owns its engine contracts, persistence, UI and same-PR Help/diagram/
-screenshot updates as applicable, meaningful boundary tests and independent review.
-If a slice exceeds a reviewable size, Main splits its contracts before launch and
-records exact dependencies. Broader formats, extraction summaries, replacements,
-cloud workflows and learned skills require separately scoped follow-ups. See
-[ORB-010 coverage and examples](work-items/ORB-010.md). Folder task completion
-never triggers Git merge; all changes to Orbit still follow repository PR rules.
+D4 supplies the foundation needed to reduce supervision in D5; priority numbers
+express product outcomes, while dependencies express technical order. E1/E2 may
+ship after demonstrated shared-core development value while remaining D5–D7
+orchestration increments continue; they do not wait for all future orchestration,
+scheduling or skills. In-place photo edits, replacements/deletes, broader parsers,
+contact sheets and folder recovery actions each need separately scoped follow-ups.
+
+Every slice owns contracts/persistence/UI and same-PR Help, affected diagrams and
+tutorial screenshots, meaningful boundary checks and independent PR review. Keep
+scope reviewable by splitting before launch. Preserve focused UI, keyboard access,
+themes/smaller windows and truthful empty/error/blocked states. See
+[ORB-010 coverage and examples](work-items/ORB-010.md). Repository changes to Orbit
+still require isolated PRs, independent review and explicit Rosh merge authorization.

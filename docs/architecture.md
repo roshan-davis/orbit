@@ -6,8 +6,8 @@ flowchart TD
   UI[Tauri 2 + React / TypeScript] -->|Loopback HTTP + session token| API[FastAPI engine]
   API --> DB[(SQLite)]
   API --> Scheduler[Mission scheduler — planned]
-  Scheduler --> Workers[CLI / Ollama adapters — planned]
-  Workers --> Trees[Per-task Git worktrees — planned]
+  Scheduler --> Workers[Provider adapters: bounded Ollama preview, CLI planned]
+  Workers --> Trees[Per-task Git worktrees: local preview]
   API --> Skills[Versioned skill registry — planned]
 ```
 
@@ -16,19 +16,29 @@ The frontend renders state and approval requests. Rust supplies the desktop shel
 FastAPI binds to loopback only. All data endpoints require a bearer token; health exposes only service status. Exact development/Tauri origins are allowed, not wildcard CORS. The engine refuses to start without a private token. Loopback and CORS alone are not authentication. Packaged networking and sidecar lifecycle need end-to-end verification before release.
 
 ## Domain model
-Keep Agent, Role, Skill, Provider/Model and Task independent. Agent identity is persistent; a task assignment snapshots instructions, skill versions, provider binding, permissions and worktree so later edits do not mutate a running task. Mission teams are temporary. Shared project knowledge and agent memory have separate scope and retention.
+Target domain: Project owns goal, instructions, configured team, missions/tasks,
+decisions/history and acceptance. Workspace defines registered roots, kind, scope
+and change isolation. Start with one primary workspace per project; do not build
+an unnecessary hierarchy. Atelier development is one project with a Git workspace;
+photo processing is a different project with a folder workspace. Context, files,
+history and grants stay separate. Persistent agent identities may participate in
+both through assignment-scoped context/access, never implicit cross-project sharing.
+Existing project/root records are not proof that this richer split is implemented;
+introduce it through explicit transactional migrations preserving current identity.
 
-Planned tables: projects, agents, role definitions, missions, tasks, assignments, runs, review decisions, approval requests, artifacts, events, provider accounts, quota pools/windows/observations, skill versions/evaluations/publications. Schema v3 contains agent profiles, registered projects, task metadata, immutable dependency edges, assignment profile snapshots and append-only task events. Migrations are explicit and transactional; see ORB-005 and ORB-006 canonical evidence for implemented contracts and limits. Enable foreign keys and WAL; short transactions and one logical write coordinator avoid concurrency contention. Back up consistently and test restore before destructive migrations.
+Keep Agent, Role, Skill, Provider/Model and Task independent. Agent identity is persistent; a task assignment snapshots instructions, skill versions, provider binding, permissions and worktree so later edits do not mutate a running task. Mission teams are temporary. Shared project knowledge and portable agent memory have separate scope and retention; portable history must not carry one project’s private content into another assignment without an explicit grant.
+
+Target persistence includes projects/workspaces, agents, role definitions, missions, tasks, assignments, runs/steps, reviews/approvals, artifacts/events, action/workflow versions, provider accounts, quota pools/windows/observations and skill versions/evaluations/publications. The preview has schema v4: v3 project/task/dependency/assignment/event state plus ORB-007 run records. This is not implementation of the full target model. Migrations are explicit and transactional; see ORB-005 and ORB-006 canonical evidence for implemented contracts and limits. Enable foreign keys and WAL; short transactions and one logical write coordinator avoid concurrency contention. Back up consistently and test restore before destructive migrations.
 
 ## Lifecycle and recovery
-ORB-006 implements task metadata transitions and assignment snapshots, dependency gates, and transactional audit history. The desktop supports task creation/readiness/assignment; execution and review/approval UI remain future integration work. Worker entry/finish are internal only; the HTTP API cannot claim execution or cancel running processes. Reviewer/human identity fields are assertions by the trusted session holder, not a worker authorization system. Worktree binding and verified skill versions are not yet captured in assignment snapshots.
+ORB-006 implements task metadata transitions, assignment snapshots, dependency gates and transactional history. ORB-007 adds bounded local execution, saved logs/diffs and cancellation endpoints; ORB-008/009 expose manual review/completion and Help. Reviewer/human identity fields are assertions by the trusted session holder, not actual separate reviewer execution or worker authorization. Run records bind the worktree/base; assignment snapshots do not verify skill versions. See canonical ORB-007–009 evidence for exact preview limits.
 
-Task states: queued → ready → assigned → running → awaiting_review → awaiting_approval → completed; also blocked, failed and cancelled. Dependency completion gates ready. Review rejection creates a revision assignment. Persist transitions and an append-only event record in the same transaction. Still planned: claim tasks atomically with leases, idempotency keys and bounded concurrency. On restart, reconcile subprocess ownership and worktrees before reclaiming expired runs; never blindly repeat external actions. Stream sequenced events using SSE initially, with reconnect/replay cursors.
+Task states: queued → ready → assigned → running → awaiting_review → awaiting_approval → completed; also blocked, failed and cancelled. Dependency completion gates ready. Review rejection creates a revision assignment. Persist transitions and an append-only event record in the same transaction. ORB-007 atomically claims one run per assignment with one worker per database and marks interrupted runs failed/cancelled without retry. Broader coordinator leases, per-effect idempotency and bounded multi-agent concurrency remain planned. On restart, reconcile subprocess ownership and worktrees before reclaiming expired runs; never blindly repeat external actions. Stream sequenced events using SSE initially, with reconnect/replay cursors.
 
 ## Provider boundary (planned)
 Adapters expose discovery, auth readiness, capability negotiation, start, streamed events, cancel and optional usage observation. Events normalize text, tool activity, artifact, completion, rate limit, auth failure, unsupported and error. Use argument arrays, explicit cwd, timeouts, bounded output and process-group cancellation. Credentials stay with the official CLI; never read its token store. Child environments exclude API keys and explicit API/Vertex modes, but that exclusion alone does not prove subscription use: verified provider-specific auth checks are required. Unsupported routes remain blocked.
 
-## Worktree boundary (planned)
+## Worktree boundary (local preview; broader integration planned)
 Register a canonical project root after checking Git ownership and status. Create a unique task branch/worktree outside the main checkout; record base SHA, branch and path. Check path containment and symlinks. Tool permissions are enforced independently of prompts. Show diff, tests and peer review before a human-authorized merge. Conflicts block integration; never reset user files or force-remove dirty worktrees. A worktree separates changes but is not a process security sandbox.
 
 ## Skills and approvals (planned)
@@ -41,15 +51,38 @@ Pool identity includes provider + account + shared allowance, not agent ID. Each
 Place a private authenticated gateway in front of engine commands; do not change bind address casually. Pair and revoke devices, encrypt transport, audit remote approvals and restrict privileges. No particular VPN or hosting vendor selected. Stitch and Claude design connectors import/export artifacts through capability-gated interfaces; availability and subscription terms remain discovery work.
 
 
+## Development coordinator (planned contract)
+
+The coordinator owns routine follow-through within approved scope: inspect request
+and project rules → record acceptance and bounded plan/dependencies → select capable
+configured agents → implement in dedicated worktree → run relevant approved checks
+and fix failures → launch actual independent reviewer distinct from author → address
+findings/recheck → prepare reviewable PR/evidence → request explicit human merge
+authorization → verify authorized integration and update status. Review rejection
+returns to revision; conflicts block integration. Record base revision, tool/action
+versions and execution configuration. A selected reviewer identity or a model saying
+“approved” is not evidence a separate review ran. Current human-session assertions
+remain accurately labeled until reviewer execution ships.
+
+Ask a human only for material ambiguity, direction/scope/cost, unavailable access or
+provider, expanded permissions or required approval. Persist actionable blocker,
+next decision and effect evidence; no repeated “continue/test/fix/status” prompts for
+already-authorized routine work. No silent provider switch, API fallback or merge.
+Persist step claims and acceptance results with restart reconciliation before retry;
+reuse neither stale approvals nor uncertain external effects blindly. PR creation
+and Git integration are separately declared external effects. Completion records
+artifact acceptance; merge/integration status is separate and verified only after
+authorized integration. Worktree isolation is not process/permission enforcement.
+
 ## Typed workspaces and action execution (planned contract)
 
-The following is a target architecture, not a description of the ORB-007 runner.
+Shared actions first support the development coordinator, not a folder-first
+milestone. The following is a target architecture, not a description of the ORB-007 runner.
 That runner replaces explicitly granted UTF-8 files in Git worktrees; it has no
-general folder action registry or arbitrary document parser. Earlier sections
-with “planned” labels are baseline architecture sketches; canonical work-item
-records describe what has actually shipped (including ORB-007–009 local-run/UX/Help).
+general folder action registry or arbitrary document parser. Canonical work-item records describe the actual local-run/UX/Help evidence;
+planned contracts here are not claims of autonomous execution or lifecycle acceptance.
 
-A workspace has a stable identity, explicit kind (`git` or `folder`), canonical
+Each project initially binds one primary workspace. A workspace has a stable identity, explicit kind (`git` or `folder`), canonical
 root, allowed input/output roots and a recorded boundary policy. Existing project
 registrations need an explicit transactional migration preserving identity and
 current Git behavior; classification must not silently initialize Git. Folder
@@ -63,7 +96,12 @@ acceptance support, timeout, cancellation, retry/idempotency and recovery contra
 The registry resolves only installed, approved handlers; schema-valid arguments
 alone never confer permission. Reject missing/unknown versions rather than silently
 substituting latest. Pass validated arguments to registered functions; model text
-is never a shell command. Network is absent unless separately declared and granted.
+is never a shell command. Network is absent unless separately declared and granted. Initial registered
+handlers should inspect repositories, create worktrees, run approved tests/builds,
+collect diffs and prepare PRs. Check actions use registered executables/argument
+schemas and project policy; arbitrary model-produced shell is never executed.
+Later photo handlers may inspect metadata, resize/convert, build contact sheets
+and export only formats explicitly implemented and validated.
 
 A workflow definition pins action versions, step dependencies, typed input/output
 mappings, artifact declarations, acceptance checks and approval boundaries. Validate
@@ -128,3 +166,25 @@ explicit approval. Material changes to versions, resolved inputs, destinations o
 effects invalidate approval. Independent review for critical changes and explicit
 Git merge authorization remain separate from action approval or task completion.
 Cloud subscription-only adapters, quota evidence and scoped memory remain unchanged.
+
+
+## Secondary folder/photo project (planned)
+
+Reuse identities, scoped assignments, mission/task dependencies, approvals,
+progress/cancel/recovery, artifacts/evidence/history and honest provider readiness/
+quota. The Git policy path produces worktrees, diffs, tests and separately approved
+integration. The folder path uses staging/separate outputs, artifact previews/checks
+and approved application/recovery manifests, with no Git terminology or prerequisite.
+Risk/artifact policy determines review: routine conversions need not launch a second
+agent, while critical effects retain approval/review gates.
+
+Example: in a separate photo project, resolve selected sources, dimensions, JPEG
+quality and output destination. Clarify consequential missing values rather than
+invent overwrite rules. Preserve originals and generate separate staged outputs by
+default. Preview names/collisions, obtain required grants, execute supported
+resize/export handlers and check dimensions, format/integrity and visual evidence
+where applicable. Report succeeded/failed/skipped per file and actual effects.
+In-place replacement/deletion is later separately scoped approval/recovery work.
+Do not claim generic image/binary support from the UTF-8 preview. A useful folder
+slice can ship incrementally after shared development value, without waiting for
+all future team orchestration, capacity or learned skills.

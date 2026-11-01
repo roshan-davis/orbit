@@ -1,7 +1,16 @@
 # Product requirements
 
 ## Vision and provenance
-Orbit is a project-agnostic, local-first desktop application: **Many minds. One mission.** Atelier is one potential managed project, not a dependency or parent repository.
+Orbit is local-first agent orchestration for developing apps with minimal
+hand-holding: **Many minds. One mission.** Atelier is an example managed development
+project, never Orbit's repository or a dependency. Ordinary-folder projects, such
+as photo processing, are a secondary extension using the same core.
+
+Rosh clarified this priority on October 31, 2026 after the folder/action proposal:
+dependable development missions and reduced supervision come first; shared actions
+must first prove development value. Folder inventory is an optional technical
+fixture, not the primary milestone. [ORB-010](work-items/ORB-010.md) records the
+clarification and superseded proposal without claiming implementation.
 
 Source: user setup brief and the available October 31, 2026 conversation, “Multi Agent Orchestration” (`6ae602fb-f7dc-83e8-b28b-28f8d641309a`). The reader exposed five recent discussion turns, including roles, skill evolution, energy, design integrations and setup. Earlier discussion was unavailable through that reader; the explicit setup brief supplies the remaining stack decisions. Illustrative agent names and dashboard values are not real configuration or telemetry.
 
@@ -9,10 +18,10 @@ Source: user setup brief and the available October 31, 2026 conversation, “Mul
 | ID | Requirement | Acceptance criterion |
 | --- | --- | --- |
 | R01 | Local-first Tauri 2, React/TypeScript desktop; FastAPI engine; SQLite | Core state works without a cloud account; database survives restart. |
-| R02 | Any registered project | Register typed Git repositories or ordinary folders with canonical allowed input/output roots; folder work never requires `git init`, branches or commits. No project-specific paths or domain logic. |
-| R03 | Persistent agent identity | Store name, instructions, role, seniority, expertise, skills, tool permissions and model binding; switching providers preserves identity/history. |
+| R02 | Independent project and workspace | Project owns goal, instructions, configured team, missions/tasks, decisions/history and acceptance. Begin with one primary workspace defining kind, canonical roots, scope and isolation. Git development and ordinary-folder work are separate projects; no implicit cross-project context/files/history/grants. Folder work never requires `git init`, branches or commits. |
+| R03 | Persistent agent identity | Store name, instructions, role, seniority, expertise, skills, tool permissions and model binding; switching providers preserves identity/history; reuse across projects grants only assignment-scoped context/access, never implicit sharing. |
 | R04 | Flexible assignments | Assemble mission teams dynamically by capability, role, availability and permissions; multiple agents may share a role/provider. Seniority is assigned authority, not a model quality guarantee. |
-| R05 | Tasks and peer review | Tasks have dependencies, acceptance criteria, artifacts and audit history; critical changes require a reviewer distinct from the author. Policy governs action approvals and artifact sign-off; Git merge separately requires explicit approval in Git workspaces. Folder completion never implies Git merge. |
+| R05 | Tasks and peer review | Tasks have dependencies, acceptance criteria, artifacts and audit history; critical changes require a reviewer distinct from the author. Development requires actual independent review distinct from the author, with rejection returning to revision. Risk/artifact policy governs folder review and approvals; routine conversions need not require a second agent. Policy governs action approvals and artifact sign-off; Git merge separately requires explicit approval in Git workspaces. Folder completion never implies Git merge. |
 | R06 | Cloud CLI adapters | Claude Code, Codex CLI and Gemini CLI use each CLI's supported subscription/account authentication. Missing entitlement or unsupported mode blocks execution; never fall back to paid APIs. |
 | R07 | Local model adapter | Support Ollama with installed Gemma/Qwen models and other installed local/open models through explicitly supported adapters to propose known workflow IDs and typed entities/parameters. Detect capabilities; native tools are not assumed. Missing/ambiguous inputs require clarification, unsupported intents stay blocked, and direct invocation works without model routing. No automatic downloads. |
 | R08 | Git and folder isolation | For Git implementation, use dedicated branches/worktrees, preserve user changes, show diffs/conflicts and review before explicitly approved merge; obtain approval before destructive cleanup. For folder effects, stage, preview and validate scope/collisions/source versions before approved apply; retain recovery evidence and explicit partial outcomes (R19). |
@@ -28,21 +37,43 @@ Source: user setup brief and the available October 31, 2026 conversation, “Mul
 | R18 | Independent execution enforcement | Engine validates model proposals and direct calls identically against schema, workspace kind, scope and policy. Reject traversal/symlink escapes, secret access and unapproved network use; imported content cannot authorize actions. Record approvals against exact scope/effects and invalidate on material changes. |
 | R19 | Folder staging and recovery | Preview creates/moves/replacements, detect collisions and changed sources/destinations before apply, retain manifest/originals where applicable and recovery instructions. No silent overwrite, atomicity or universal reversibility claim. Cancellation, partial failure and restart reconcile actual effects before retry. |
 | R20 | Auditable action runs | Persist run/step IDs, pinned versions, redacted validated inputs, grant/approval evidence, progress, outputs, acceptance results and explicit failures. Completion derives from inspected artifacts/checks, not model claims. |
+| R21 | Routine development follow-through | Within authorized scope, Orbit reads request/project rules, defines acceptance and bounded plan/dependencies, assigns capable configured agents, implements in isolated worktrees, runs relevant tests/builds and fixes failures, obtains actual independent review and resolves findings, prepares PR/evidence, requests explicit human merge authorization, then verifies authorized integration and updates status. Users need not repeatedly request continue/test/fix/status. |
+| R22 | Human decision boundaries | Ask for material ambiguity, direction/scope/cost decisions, unavailable access/provider, permission expansion or required approval. Routine follow-through proceeds within grants. No hidden provider change, paid fallback, unattended merge or uncontrolled scope expansion; safe restart reconciles effects before repeating work. |
 
-## Folder and action alignment (planned)
+## Development orchestration and shared actions (planned)
 
-Rosh's October 31, 2026 direction supports ordinary folder work and explicit predefined
-functions, with natural language as an optional route to them. The model proposes;
-the executor enforces. [ORB-010](work-items/ORB-010.md) records source intent,
-coverage, examples and bounded follow-up gates. No general folder action engine is
-implemented by this requirements change. The current ORB-007 runner is a narrow
-Git-worktree UTF-8 replacement protocol, not PDF/image/document processing or an
-action registry. Supported formats/parsers must be explicitly declared.
+The first outcome is a tested, independently reviewed development change ready for
+human integration decision, with actionable blockers instead of repeated supervision.
+Dedicated branch/worktree execution records base revision/configuration, actual
+diffs and relevant checks. Review findings create revisions; conflicts block
+integration. Worktree isolation never substitutes for permission/process enforcement.
+Mission completion and merge are separate facts. The human authorizes merge;
+Orbit verifies integration only when authorized and records actual status.
 
-Start with bounded metadata inventory and a report available as a run artifact,
-without modifying selected source files. Add approved new-artifact creation next;
-previewed moves/replacements and recovery come later. Useful deterministic local
-work does not depend on cloud subscriptions, scheduling or learned skills.
+Shared trusted actions include repository inspection, worktree creation, approved
+tests/builds, diff collection and PR preparation. Versioned workflows pin these
+actions and map inputs/dependencies. Installed local/open models can select known
+workflows and extract intent/entities/parameters; the engine validates schemas,
+grants and policy, clarifies consequential missing required inputs, previews effects
+and obtains required approval. The model proposes; the executor enforces. Direct
+UI invocation follows the same boundary without routing. Never execute arbitrary
+model-produced shell text. Fixed actions/workflows are independent of learned
+skills under R09; learning cannot grant permissions.
+
+A later separate photo project may resize selected supported photos for a website,
+resolve source/dimensions/quality/destination, preserve originals and export JPEGs
+separately. Preview outputs/collisions, execute approved actions, verify dimensions,
+format/integrity and visual evidence where applicable, then report succeeded,
+failed and skipped files with effects recorded. In-place edits, replacements and
+deletes need explicit approval/recovery contracts. Do not imply image/binary support
+beyond implemented parsers/actions. Useful folder delivery need not wait for the
+entire future orchestration/scheduling roadmap, but does not displace development.
+
+Current preview: ORB-007 is a narrow Git-worktree UTF-8 replacement protocol. It is
+not full autonomous coding, supported cloud CLI orchestration, actual reviewer
+execution, generic folder/image processing or a validated full desktop lifecycle.
+Tests, review and integration are currently manual; engine startup/session entry
+are manual. This PR changes guidance/plans, not those capabilities.
 
 ## Skill quality
 Observer starts with periodic analysis of completed tasks, not continuous expensive monitoring. Require repeated-use evidence, clear triggers, examples, reproducible tests and baseline comparisons. Classify each candidate as reusable skill, knowledge, or deterministic automation. Reviewer checks quality, permissions, portability and usefulness. Track published skill success, regressions, overhead, usage and provider compatibility. Keep immutable versions, an active-version pointer and a disable/rollback path; never uncontrolled self-modification.
@@ -66,4 +97,4 @@ Put the user’s current mission and next action ahead of setup; avoid presentin
 Show missions, team assignments, diffs, approvals, provider readiness, agent energy references and independent pool dashboards. Provide accessible labels, keyboard interaction and readable states. Unknown quota must never look full or depleted. Surface blocked authentication, crashes, cancellation and stale observations. Store locally by default; no telemetry upload. Never persist tokens in prompts/logs. Support restart recovery with no duplicate task execution. Initial target is local macOS development; other desktop packaging follows validation.
 
 ## Foundation boundary
-This setup implements the shell, token-protected profile API, SQLite persistence and provider declarations. The rest is phased work. Remote control, automatic routing, memory mining, and external design connectors are explicitly later scope.
+The current preview includes the shell, token-protected API/SQLite state, profiles, Git project/task registration, bounded local runs and manual review/completion UI (ORB-005–009). Full development follow-through, shared action routing, generic folders/photos, remote control, memory mining and external design connectors remain planned. Canonical work items record validation limits; declarations alone do not prove runtime readiness.
